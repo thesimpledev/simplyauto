@@ -4,8 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-vgo/robotgo"
-
+	"simplyauto/internal/input"
 	"simplyauto/internal/storage"
 	"simplyauto/pkg/events"
 )
@@ -44,7 +43,7 @@ var vkToString map[uint16]string
 
 func init() {
 	vkToString = make(map[uint16]string)
-	for keyStr, keyCode := range robotgo.Keycode {
+	for keyStr, keyCode := range input.Keycode {
 		vkToString[keyCode] = keyStr
 	}
 }
@@ -238,47 +237,47 @@ func (p *Player) playEvents(rec *storage.Recording, speed float64, stopChan, pau
 func (p *Player) executeEvent(event events.InputEvent) {
 	switch event.Type {
 	case events.EventMouseMove:
-		robotgo.Move(event.X, event.Y)
+		input.Move(event.X, event.Y)
 
 	case events.EventMouseLeftDown:
-		robotgo.Move(event.X, event.Y)
-		robotgo.Toggle("left", "down")
+		input.Move(event.X, event.Y)
+		input.Toggle("left", "down")
 
 	case events.EventMouseLeftUp:
-		robotgo.Move(event.X, event.Y)
-		robotgo.Toggle("left", "up")
+		input.Move(event.X, event.Y)
+		input.Toggle("left", "up")
 
 	case events.EventMouseRightDown:
-		robotgo.Move(event.X, event.Y)
-		robotgo.Toggle("right", "down")
+		input.Move(event.X, event.Y)
+		input.Toggle("right", "down")
 
 	case events.EventMouseRightUp:
-		robotgo.Move(event.X, event.Y)
-		robotgo.Toggle("right", "up")
+		input.Move(event.X, event.Y)
+		input.Toggle("right", "up")
 
 	case events.EventMouseMiddleDown:
-		robotgo.Move(event.X, event.Y)
-		robotgo.Toggle("center", "down")
+		input.Move(event.X, event.Y)
+		input.Toggle("center", "down")
 
 	case events.EventMouseMiddleUp:
-		robotgo.Move(event.X, event.Y)
-		robotgo.Toggle("center", "up")
+		input.Move(event.X, event.Y)
+		input.Toggle("center", "up")
 
 	case events.EventMouseWheel:
 		if event.Delta > 0 {
-			robotgo.ScrollDir(event.Delta, "up")
+			input.ScrollDir(event.Delta, "up")
 		} else {
-			robotgo.ScrollDir(-event.Delta, "down")
+			input.ScrollDir(-event.Delta, "down")
 		}
 
 	case events.EventKeyDown:
 		if key := vkToString[event.KeyCode]; key != "" {
-			robotgo.KeyDown(key)
+			input.KeyDown(key)
 		}
 
 	case events.EventKeyUp:
 		if key := vkToString[event.KeyCode]; key != "" {
-			robotgo.KeyUp(key)
+			input.KeyUp(key)
 		}
 	}
 }

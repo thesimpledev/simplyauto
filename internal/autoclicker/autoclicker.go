@@ -6,8 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-vgo/robotgo"
-
+	"simplyauto/internal/input"
 	"simplyauto/pkg/events"
 )
 
@@ -114,10 +113,10 @@ func (a *AutoClicker) clickLoop(cfg Config, stopChan <-chan struct{}) {
 		}
 
 		if cfg.PositionMode == PositionFixed {
-			robotgo.Move(cfg.FixedX, cfg.FixedY)
+			input.Move(cfg.FixedX, cfg.FixedY)
 		}
 
-		robotgo.Click(cfg.Button.String(), cfg.ClickType == events.ClickDouble)
+		input.Click(cfg.Button.String(), cfg.ClickType == events.ClickDouble)
 
 		a.mu.Lock()
 		a.clickCount++
