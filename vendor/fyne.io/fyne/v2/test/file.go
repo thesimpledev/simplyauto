@@ -73,7 +73,7 @@ func (d *driver) ListerForURI(uri fyne.URI) (fyne.ListableURI, error) {
 		return nil, errUnsupportedURLProtocol
 	}
 
-	path := uri.Path()
+	path := uri.String()[len(uri.Scheme())+3 : len(uri.String())]
 	s, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -91,15 +91,17 @@ func (d *directory) List() ([]fyne.URI, error) {
 		return nil, errUnsupportedURLProtocol
 	}
 
-	path := d.Path()
+	path := d.String()[len(d.Scheme())+3 : len(d.String())]
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
 
-	urilist := make([]fyne.URI, len(files))
-	for i, f := range files {
-		urilist[i] = storage.NewFileURI(filepath.Join(path, f.Name()))
+	urilist := []fyne.URI{}
+
+	for _, f := range files {
+		uri := storage.NewFileURI(filepath.Join(path, f.Name()))
+		urilist = append(urilist, uri)
 	}
 
 	return urilist, nil

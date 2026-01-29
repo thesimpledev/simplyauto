@@ -11,7 +11,6 @@ void openURL(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, char *url);
 void sendNotification(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, char *title, char *content);
 */
 import "C"
-
 import (
 	"net/url"
 	"unsafe"

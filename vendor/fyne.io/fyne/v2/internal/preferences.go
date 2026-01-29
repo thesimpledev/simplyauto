@@ -262,9 +262,17 @@ func (p *InMemoryPreferences) fireChange() {
 	listeners := p.changeListeners
 	p.lock.RUnlock()
 
+	var wg sync.WaitGroup
+
 	for _, l := range listeners {
-		l()
+		wg.Add(1)
+		go func(listener func()) {
+			defer wg.Done()
+			listener()
+		}(l)
 	}
+
+	wg.Wait()
 }
 
 func (p *InMemoryPreferences) get(key string) (any, bool) {

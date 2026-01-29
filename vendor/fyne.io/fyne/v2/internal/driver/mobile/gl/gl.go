@@ -98,23 +98,8 @@ func (ctx *context) BufferData(target Enum, src []byte, usage Enum) {
 			a1: uintptr(len(src)),
 			a2: usage.c(),
 		},
-		parg: parg,
-	})
-}
-
-func (ctx *context) BufferSubData(target Enum, src []byte) {
-	parg := unsafe.Pointer(nil)
-	if len(src) > 0 {
-		parg = unsafe.Pointer(&src[0])
-	}
-	ctx.enqueue(call{
-		args: fnargs{
-			fn: glfnBufferSubData,
-			a0: target.c(),
-			a1: 0,
-			a2: uintptr(len(src)),
-		},
-		parg: parg,
+		parg:     parg,
+		blocking: true,
 	})
 }
 
@@ -166,8 +151,7 @@ func (ctx *context) CreateProgram() Program {
 			},
 			blocking: true,
 		},
-		)),
-	}
+		))}
 }
 
 func (ctx *context) CreateShader(ty Enum) Shader {
@@ -521,7 +505,8 @@ func (ctx *context) Uniform4fv(dst Uniform, src []float32) {
 			a0: dst.c(),
 			a1: uintptr(len(src) / 4),
 		},
-		parg: unsafe.Pointer(&src[0]),
+		parg:     unsafe.Pointer(&src[0]),
+		blocking: true,
 	})
 }
 

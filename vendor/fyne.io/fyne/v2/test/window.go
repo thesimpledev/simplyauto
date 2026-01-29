@@ -1,6 +1,8 @@
 package test
 
 import (
+	"testing"
+
 	"fyne.io/fyne/v2"
 )
 
@@ -12,9 +14,20 @@ type window struct {
 	onClosed           func()
 	onCloseIntercepted func()
 
-	canvas *canvas
-	driver *driver
-	menu   *fyne.MainMenu
+	canvas    *canvas
+	clipboard clipboard
+	driver    *driver
+	menu      *fyne.MainMenu
+}
+
+// NewTempWindow creates and registers a new window for test purposes.
+// This window will get removed automatically once the running test ends.
+//
+// Since: 2.5
+func NewTempWindow(t testing.TB, content fyne.CanvasObject) fyne.Window {
+	window := NewWindow(content)
+	t.Cleanup(window.Close)
+	return window
 }
 
 // NewWindow creates and registers a new window for test purposes
@@ -33,7 +46,7 @@ func (w *window) CenterOnScreen() {
 }
 
 func (w *window) Clipboard() fyne.Clipboard {
-	return NewClipboard()
+	return &w.clipboard
 }
 
 func (w *window) Close() {
@@ -117,6 +130,7 @@ func (w *window) SetCloseIntercept(callback func()) {
 }
 
 func (w *window) SetOnDropped(dropped func(fyne.Position, []fyne.URI)) {
+
 }
 
 func (w *window) SetPadded(padded bool) {

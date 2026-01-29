@@ -12,10 +12,13 @@ import (
 var _ driver.NativeWindow = (*window)(nil)
 
 func (w *window) RunNative(f func(any)) {
-	context := driver.WaylandWindowContext{}
-	if v := w.view(); v != nil {
-		context.WaylandSurface = uintptr(unsafe.Pointer(v.GetWaylandWindow()))
-	}
-
-	f(context)
+	runOnMain(func() {
+		var waylandSurface uintptr
+		if v := w.view(); v != nil {
+			waylandSurface = uintptr(unsafe.Pointer(v.GetWaylandWindow()))
+		}
+		f(driver.WaylandWindowContext{
+			WaylandSurface: waylandSurface,
+		})
+	})
 }

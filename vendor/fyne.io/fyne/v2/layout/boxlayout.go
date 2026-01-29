@@ -94,8 +94,6 @@ func (v vBoxLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 		}
 
 		if isVerticalSpacer(child) {
-			child.Move(fyne.NewPos(x, y))
-			child.Resize(fyne.NewSize(size.Width, spacerSize))
 			y += spacerSize
 			continue
 		}
@@ -179,9 +177,6 @@ func (g hBoxLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 		}
 
 		if isHorizontalSpacer(child) {
-			child.Move(fyne.NewPos(x, y))
-			child.Resize(fyne.NewSize(spacerSize, size.Height))
-
 			x += spacerSize
 			continue
 		}

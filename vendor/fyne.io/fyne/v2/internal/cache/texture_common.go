@@ -1,36 +1,34 @@
 package cache
 
 import (
+	"sync"
+
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/internal/async"
 )
 
-var (
-	textTextures   async.Map[FontCacheEntry, *textureInfo]
-	objectTextures async.Map[fyne.CanvasObject, *textureInfo]
-)
+var textures = sync.Map{} // map[fyne.CanvasObject]*textureInfo
 
 // DeleteTexture deletes the texture from the cache map.
 func DeleteTexture(obj fyne.CanvasObject) {
-	objectTextures.Delete(obj)
+	textures.Delete(obj)
 }
 
 // GetTextTexture gets cached texture for a text run.
 func GetTextTexture(ent FontCacheEntry) (TextureType, bool) {
-	texInfo, ok := textTextures.Load(ent)
-	if texInfo == nil || !ok {
-		return NoTexture, false
-	}
-	texInfo.setAlive()
-	return texInfo.texture, true
+	return load(ent)
 }
 
 // GetTexture gets cached texture.
 func GetTexture(obj fyne.CanvasObject) (TextureType, bool) {
-	texInfo, ok := objectTextures.Load(obj)
-	if texInfo == nil || !ok {
+	return load(obj)
+}
+
+func load(obj any) (TextureType, bool) {
+	t, ok := textures.Load(obj)
+	if t == nil || !ok {
 		return NoTexture, false
 	}
+	texInfo := t.(*textureInfo)
 	texInfo.setAlive()
 	return texInfo.texture, true
 }
@@ -41,17 +39,19 @@ func GetTexture(obj fyne.CanvasObject) (TextureType, bool) {
 // gl context to ensure textures are deleted from gl.
 func RangeExpiredTexturesFor(canvas fyne.Canvas, f func(fyne.CanvasObject)) {
 	now := timeNow()
+	textures.Range(func(key, value any) bool {
+		if _, ok := key.(FontCacheEntry); ok {
+			tinfo := value.(*textureInfo)
 
-	textTextures.Range(func(key FontCacheEntry, tinfo *textureInfo) bool {
-		// Just free text directly when that string/style combo is done.
-		if tinfo.isExpired(now) && tinfo.canvas == canvas {
-			textTextures.Delete(key)
-			tinfo.textFree()
+			// just free text directly when that string/style combo is done
+			if tinfo.isExpired(now) && tinfo.canvas == canvas {
+				textures.Delete(key)
+				tinfo.textFree()
+			}
+
+			return true
 		}
-		return true
-	})
-
-	objectTextures.Range(func(obj fyne.CanvasObject, tinfo *textureInfo) bool {
+		obj, tinfo := key.(fyne.CanvasObject), value.(*textureInfo)
 		if tinfo.isExpired(now) && tinfo.canvas == canvas {
 			f(obj)
 		}
@@ -65,8 +65,12 @@ func RangeExpiredTexturesFor(canvas fyne.Canvas, f func(fyne.CanvasObject)) {
 // Note: If this is used to free textures, then it should be called inside a current
 // gl context to ensure textures are deleted from gl.
 func RangeTexturesFor(canvas fyne.Canvas, f func(fyne.CanvasObject)) {
-	// Do nothing for texture cache, it lives outside the scope of an object.
-	objectTextures.Range(func(obj fyne.CanvasObject, tinfo *textureInfo) bool {
+	textures.Range(func(key, value any) bool {
+		if _, ok := key.(FontCacheEntry); ok {
+			return true // do nothing, text cache lives outside the scope of an object
+		}
+
+		obj, tinfo := key.(fyne.CanvasObject), value.(*textureInfo)
 		if tinfo.canvas == canvas {
 			f(obj)
 		}
@@ -74,38 +78,28 @@ func RangeTexturesFor(canvas fyne.Canvas, f func(fyne.CanvasObject)) {
 	})
 }
 
-// DeleteTextTexturesFor deletes all text textures for the given canvas.
-func DeleteTextTexturesFor(canvas fyne.Canvas) {
-	textTextures.Range(func(key FontCacheEntry, tinfo *textureInfo) bool {
-		if tinfo.canvas == canvas {
-			textTextures.Delete(key)
-			tinfo.textFree()
-		}
-		return true
-	})
-}
-
 // SetTextTexture sets cached texture for a text run.
 func SetTextTexture(ent FontCacheEntry, texture TextureType, canvas fyne.Canvas, free func()) {
-	tinfo := prepareTexture(texture, canvas, free)
-	textTextures.Store(ent, tinfo)
+	store(ent, texture, canvas, free)
 }
 
 // SetTexture sets cached texture.
 func SetTexture(obj fyne.CanvasObject, texture TextureType, canvas fyne.Canvas) {
-	tinfo := prepareTexture(texture, canvas, nil)
-	objectTextures.Store(obj, tinfo)
+	store(obj, texture, canvas, nil)
 }
 
-func prepareTexture(texture TextureType, canvas fyne.Canvas, free func()) *textureInfo {
-	tinfo := &textureInfo{texture: texture, textFree: free}
-	tinfo.canvas = canvas
-	tinfo.setAlive()
-	return tinfo
+func store(obj any, texture TextureType, canvas fyne.Canvas, free func()) {
+	texInfo := &textureInfo{texture: texture}
+	if free != nil {
+		texInfo.textFree = free
+	}
+	texInfo.canvas = canvas
+	texInfo.setAlive()
+	textures.Store(obj, texInfo)
 }
 
 // textureCacheBase defines base texture cache object.
 type textureCacheBase struct {
-	expiringCache
+	expiringCacheNoLock
 	canvas fyne.Canvas
 }

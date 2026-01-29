@@ -14,7 +14,6 @@ bool iosCreateListable(const char* url);
 char* iosList(const char* url);
 */
 import "C"
-
 import (
 	"errors"
 	"strings"

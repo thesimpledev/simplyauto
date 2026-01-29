@@ -11,16 +11,19 @@ import (
 )
 
 type window struct {
+	common.Window
+
 	title              string
 	visible            bool
 	onClosed           func()
 	onCloseIntercepted func()
 	isChild            bool
 
-	canvas *canvas
-	icon   fyne.Resource
-	menu   *fyne.MainMenu
-	handle uintptr // the window handle - currently just Android
+	clipboard fyne.Clipboard
+	canvas    *canvas
+	icon      fyne.Resource
+	menu      *fyne.MainMenu
+	handle    uintptr // the window handle - currently just Android
 }
 
 func (w *window) Title() string {
@@ -140,7 +143,7 @@ func (w *window) Hide() {
 
 func (w *window) tryClose() {
 	if w.onCloseIntercepted != nil {
-		w.onCloseIntercepted()
+		w.QueueEvent(w.onCloseIntercepted)
 		return
 	}
 
@@ -166,7 +169,16 @@ func (w *window) Close() {
 			cache.DestroyRenderer(wid)
 		}
 	})
-	cache.CleanCanvas(w.canvas)
+
+	w.QueueEvent(func() {
+		cache.CleanCanvas(w.canvas)
+	})
+
+	// Call this in a go routine, because this function could be called
+	// inside a button which callback would be queued in this event queue
+	// and it will lead to a deadlock if this is performed in the same go
+	// routine.
+	go w.DestroyEventQueue()
 
 	if w.onClosed != nil {
 		w.onClosed()
@@ -191,7 +203,10 @@ func (w *window) Canvas() fyne.Canvas {
 }
 
 func (w *window) Clipboard() fyne.Clipboard {
-	return NewClipboard()
+	if w.clipboard == nil {
+		w.clipboard = &mobileClipboard{}
+	}
+	return w.clipboard
 }
 
 func (w *window) RunWithContext(f func()) {

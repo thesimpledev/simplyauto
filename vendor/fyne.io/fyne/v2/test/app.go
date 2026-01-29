@@ -4,6 +4,7 @@ package test // import "fyne.io/fyne/v2/test"
 import (
 	"net/url"
 	"sync"
+	"testing"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/internal"
@@ -26,7 +27,6 @@ type app struct {
 	propertyLock sync.RWMutex
 	storage      fyne.Storage
 	lifecycle    intapp.Lifecycle
-	clip         fyne.Clipboard
 	cloud        fyne.CloudProvider
 
 	// user action variables
@@ -61,10 +61,6 @@ func (a *app) Run() {
 
 func (a *app) Quit() {
 	// no-op
-}
-
-func (a *app) Clipboard() fyne.Clipboard {
-	return a.clip
 }
 
 func (a *app) UniqueID() string {
@@ -151,19 +147,42 @@ func (a *app) transitionCloud(p fyne.CloudProvider) {
 	a.settings.apply()
 }
 
+// NewTempApp returns a new dummy app and tears it down at the end of the test.
+//
+// Since: 2.5
+func NewTempApp(t testing.TB) fyne.App {
+	app := NewApp()
+	t.Cleanup(func() { NewApp() })
+	return app
+}
+
 // NewApp returns a new dummy app used for testing.
 // It loads a test driver which creates a virtual window in memory for testing.
 func NewApp() fyne.App {
 	settings := &testSettings{scale: 1.0, theme: Theme()}
 	prefs := internal.NewInMemoryPreferences()
 	store := &testStorage{}
-	test := &app{settings: settings, prefs: prefs, storage: store, driver: NewDriver().(*driver), clip: NewClipboard()}
-	settings.app = test
+	test := &app{settings: settings, prefs: prefs, storage: store, driver: NewDriver().(*driver)}
 	root, _ := store.docRootURI()
 	store.Docs = &internal.Docs{RootDocURI: root}
 	painter.ClearFontCache()
 	cache.ResetThemeCaches()
 	fyne.SetCurrentApp(test)
+
+	listener := make(chan fyne.Settings)
+	test.Settings().AddChangeListener(listener)
+	go func() {
+		for {
+			<-listener
+			test.propertyLock.Lock()
+			painter.ClearFontCache()
+			cache.ResetThemeCaches()
+			intapp.ApplySettings(test.Settings(), test)
+
+			test.appliedTheme = test.Settings().Theme()
+			test.propertyLock.Unlock()
+		}
+	}()
 
 	return test
 }
@@ -173,22 +192,14 @@ type testSettings struct {
 	scale        float32
 	theme        fyne.Theme
 
-	listeners       []func(fyne.Settings)
 	changeListeners []chan fyne.Settings
 	propertyLock    sync.RWMutex
-	app             *app
 }
 
 func (s *testSettings) AddChangeListener(listener chan fyne.Settings) {
 	s.propertyLock.Lock()
 	defer s.propertyLock.Unlock()
 	s.changeListeners = append(s.changeListeners, listener)
-}
-
-func (s *testSettings) AddListener(listener func(fyne.Settings)) {
-	s.propertyLock.Lock()
-	defer s.propertyLock.Unlock()
-	s.listeners = append(s.listeners, listener)
 }
 
 func (s *testSettings) BuildType() fyne.BuildType {
@@ -239,26 +250,14 @@ func (s *testSettings) Scale() float32 {
 func (s *testSettings) apply() {
 	s.propertyLock.RLock()
 	listeners := s.changeListeners
-	listenersFns := s.listeners
 	s.propertyLock.RUnlock()
 
 	for _, listener := range listeners {
-		listener <- s
-	}
-
-	s.app.driver.DoFromGoroutine(func() {
-		s.app.propertyLock.Lock()
-		painter.ClearFontCache()
-		cache.ResetThemeCaches()
-		intapp.ApplySettings(s, s.app)
-		s.app.propertyLock.Unlock()
-
-		for _, l := range listenersFns {
-			l(s)
+		select {
+		case listener <- s:
+		default:
+			l := listener
+			go func() { l <- s }()
 		}
-	}, false)
-
-	s.app.propertyLock.Lock()
-	s.app.appliedTheme = s.Theme()
-	s.app.propertyLock.Unlock()
+	}
 }

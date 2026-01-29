@@ -8,10 +8,13 @@ import "fyne.io/fyne/v2/driver"
 var _ driver.NativeWindow = (*window)(nil)
 
 func (w *window) RunNative(f func(any)) {
-	context := driver.X11WindowContext{}
+	var handle uintptr
 	if v := w.view(); v != nil {
-		context.WindowHandle = uintptr(v.GetX11Window())
+		handle = uintptr(v.GetX11Window())
 	}
-
-	f(context)
+	runOnMain(func() {
+		f(driver.X11WindowContext{
+			WindowHandle: handle,
+		})
+	})
 }

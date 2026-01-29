@@ -8,10 +8,8 @@ import (
 )
 
 // Declare conformity with Shortcut interface
-var (
-	_ fyne.Shortcut         = (*CustomShortcut)(nil)
-	_ fyne.KeyboardShortcut = (*CustomShortcut)(nil)
-)
+var _ fyne.Shortcut = (*CustomShortcut)(nil)
+var _ fyne.KeyboardShortcut = (*CustomShortcut)(nil)
 
 // CustomShortcut describes a shortcut desktop event.
 type CustomShortcut struct {
@@ -20,39 +18,44 @@ type CustomShortcut struct {
 }
 
 // Key returns the key name of this shortcut.
+// @implements KeyboardShortcut
 func (cs *CustomShortcut) Key() fyne.KeyName {
 	return cs.KeyName
 }
 
 // Mod returns the modifier of this shortcut.
+// @implements KeyboardShortcut
 func (cs *CustomShortcut) Mod() fyne.KeyModifier {
 	return cs.Modifier
 }
 
-// ShortcutName returns the shortcut name associated to the event.
+// ShortcutName returns the shortcut name associated to the event
 func (cs *CustomShortcut) ShortcutName() string {
 	id := &strings.Builder{}
 	id.WriteString("CustomDesktop:")
-	writeModifiers(id, cs.Modifier)
+	id.WriteString(modifierToString(cs.Modifier))
+	id.WriteString("+")
 	id.WriteString(string(cs.KeyName))
 	return id.String()
 }
 
-func writeModifiers(w *strings.Builder, mods fyne.KeyModifier) {
+func modifierToString(mods fyne.KeyModifier) string {
+	s := []string{}
 	if (mods & fyne.KeyModifierShift) != 0 {
-		w.WriteString("Shift+")
+		s = append(s, string("Shift"))
 	}
 	if (mods & fyne.KeyModifierControl) != 0 {
-		w.WriteString("Control+")
+		s = append(s, string("Control"))
 	}
 	if (mods & fyne.KeyModifierAlt) != 0 {
-		w.WriteString("Alt+")
+		s = append(s, string("Alt"))
 	}
 	if (mods & fyne.KeyModifierSuper) != 0 {
 		if runtime.GOOS == "darwin" {
-			w.WriteString("Command+")
+			s = append(s, string("Command"))
 		} else {
-			w.WriteString("Super+")
+			s = append(s, string("Super"))
 		}
 	}
+	return strings.Join(s, "+")
 }

@@ -101,7 +101,5 @@ type Window interface {
 	Canvas() Canvas
 
 	// Clipboard returns the system clipboard
-	//
-	// Deprecated: use App.Clipboard() instead.
 	Clipboard() Clipboard
 }

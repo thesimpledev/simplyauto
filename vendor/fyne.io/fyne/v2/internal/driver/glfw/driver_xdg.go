@@ -3,7 +3,6 @@
 package glfw
 
 import "C"
-
 import (
 	"time"
 
@@ -46,6 +45,6 @@ func setDisableScreenBlank(disable bool) {
 	}
 }
 
-func (d *gLDriver) DoubleTapDelay() time.Duration {
+func (g *gLDriver) DoubleTapDelay() time.Duration {
 	return desktopDefaultDoubleTapDelay
 }

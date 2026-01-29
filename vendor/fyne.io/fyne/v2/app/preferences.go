@@ -15,6 +15,7 @@ type preferences struct {
 	*internal.InMemoryPreferences
 
 	prefLock            sync.RWMutex
+	loadingInProgress   bool
 	savedRecently       bool
 	changedDuringSaving bool
 
@@ -49,19 +50,15 @@ func (p *preferences) forceImmediateSave() {
 func (p *preferences) resetSavedRecently() {
 	go func() {
 		time.Sleep(time.Millisecond * 100) // writes are not always atomic. 10ms worked, 100 is safer.
+		p.prefLock.Lock()
+		p.savedRecently = false
+		changedDuringSaving := p.changedDuringSaving
+		p.changedDuringSaving = false
+		p.prefLock.Unlock()
 
-		// For test reasons we need to use current app not what we were initialised with as they can differ
-		fyne.DoAndWait(func() {
-			p.prefLock.Lock()
-			p.savedRecently = false
-			changedDuringSaving := p.changedDuringSaving
-			p.changedDuringSaving = false
-			p.prefLock.Unlock()
-
-			if changedDuringSaving {
-				p.save()
-			}
-		})
+		if changedDuringSaving {
+			p.save()
+		}
 	}()
 }
 
@@ -112,6 +109,10 @@ func (p *preferences) loadFromStorage(storage io.ReadCloser) (err error) {
 	}()
 	decode := json.NewDecoder(storage)
 
+	p.prefLock.Lock()
+	p.loadingInProgress = true
+	p.prefLock.Unlock()
+
 	p.InMemoryPreferences.WriteValues(func(values map[string]any) {
 		err = decode.Decode(&values)
 		if err != nil {
@@ -119,6 +120,10 @@ func (p *preferences) loadFromStorage(storage io.ReadCloser) (err error) {
 		}
 		convertLists(values)
 	})
+
+	p.prefLock.Lock()
+	p.loadingInProgress = false
+	p.prefLock.Unlock()
 
 	return err
 }
@@ -139,8 +144,8 @@ func newPreferences(app *fyneApp) *preferences {
 			return
 		}
 		p.prefLock.Lock()
-		shouldIgnoreChange := p.savedRecently
-		if p.savedRecently {
+		shouldIgnoreChange := p.savedRecently || p.loadingInProgress
+		if p.savedRecently && !p.loadingInProgress {
 			p.changedDuringSaving = true
 		}
 		p.prefLock.Unlock()
@@ -178,7 +183,7 @@ func convertLists(values map[string]any) {
 					floats[i] = item.(float64)
 				}
 				values[k] = floats
-			// case int: // json has no int!
+			//case int: // json has no int!
 			case string:
 				strings := make([]string, len(items))
 				for i, item := range items {

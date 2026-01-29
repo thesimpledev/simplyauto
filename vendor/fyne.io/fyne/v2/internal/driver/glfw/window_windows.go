@@ -60,10 +60,13 @@ func (w *window) computeCanvasSize(width, height int) fyne.Size {
 var _ driver.NativeWindow = (*window)(nil)
 
 func (w *window) RunNative(f func(any)) {
-	context := driver.WindowsWindowContext{}
+	var hwnd uintptr
 	if v := w.view(); v != nil {
-		context.HWND = uintptr(unsafe.Pointer(v.GetWin32Window()))
+		hwnd = uintptr(unsafe.Pointer(v.GetWin32Window()))
 	}
-
-	f(context)
+	runOnMain(func() {
+		f(driver.WindowsWindowContext{
+			HWND: hwnd,
+		})
+	})
 }

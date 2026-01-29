@@ -162,7 +162,7 @@ func walkObjectTree(
 		}
 	}
 
-	if IsClip(obj) {
+	if _, ok := obj.(fyne.Scrollable); ok {
 		clipPos = pos
 		clipSize = obj.Size()
 	}
@@ -199,22 +199,4 @@ func walkObjectTree(
 		afterChildren(obj, pos, parent)
 	}
 	return cancelled
-}
-
-func IsClip(o fyne.CanvasObject) bool {
-	_, scroll := o.(fyne.Scrollable)
-	if scroll {
-		return true
-	}
-
-	if _, isWid := o.(fyne.Widget); !isWid {
-		return false
-	}
-	r, rendered := cache.CachedRenderer(o.(fyne.Widget))
-	if !rendered {
-		return false
-	}
-
-	_, clip := r.(interface{ IsClip() })
-	return clip
 }

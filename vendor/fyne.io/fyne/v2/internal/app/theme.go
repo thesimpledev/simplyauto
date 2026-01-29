@@ -14,11 +14,10 @@ func ApplyThemeTo(content fyne.CanvasObject, canv fyne.Canvas) {
 
 	switch o := content.(type) {
 	case fyne.Widget:
-		renderer := cache.Renderer(o)
-		for _, co := range renderer.Objects() {
+		for _, co := range cache.Renderer(o).Objects() {
 			ApplyThemeTo(co, canv)
 		}
-		renderer.Layout(content.Size()) // theme can cause sizing changes
+		cache.Renderer(o).Layout(content.Size()) // theme can cause sizing changes
 	case *fyne.Container:
 		for _, co := range o.Objects {
 			ApplyThemeTo(co, canv)

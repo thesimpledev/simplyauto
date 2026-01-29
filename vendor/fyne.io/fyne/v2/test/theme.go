@@ -3,6 +3,9 @@ package test
 import (
 	"fmt"
 	"image/color"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/theme"
@@ -11,7 +14,7 @@ import (
 var defaultTheme fyne.Theme
 
 // Try to keep these in sync with the existing color names at theme/color.go.
-var knownColorNames = [...]fyne.ThemeColorName{
+var knownColorNames = []fyne.ThemeColorName{
 	theme.ColorNameBackground,
 	theme.ColorNameButton,
 	theme.ColorNameDisabled,
@@ -34,12 +37,30 @@ var knownColorNames = [...]fyne.ThemeColorName{
 	theme.ColorNamePressed,
 	theme.ColorNamePrimary,
 	theme.ColorNameScrollBar,
-	theme.ColorNameScrollBarBackground,
 	theme.ColorNameSelection,
 	theme.ColorNameSeparator,
 	theme.ColorNameShadow,
 	theme.ColorNameSuccess,
 	theme.ColorNameWarning,
+}
+
+// AssertAllColorNamesDefined asserts that all known color names are defined for the given theme.
+func AssertAllColorNamesDefined(t *testing.T, th fyne.Theme, themeName string) {
+	oldApp := fyne.CurrentApp()
+	defer fyne.SetCurrentApp(oldApp)
+
+	for _, primaryName := range theme.PrimaryColorNames() {
+		testApp := NewTempApp(t)
+		testApp.Settings().(*testSettings).primaryColor = primaryName
+		for variantName, variant := range KnownThemeVariants() {
+			for _, cn := range knownColorNames {
+				assert.NotNil(t, th.Color(cn, variant), "undefined color %s variant %s in theme %s", cn, variantName, themeName)
+				// Transparent is used by the default theme as fallback for unknown color names.
+				// Built-in color names should have well-defined non-transparent values.
+				assert.NotEqual(t, color.Transparent, th.Color(cn, variant), "undefined color %s variant %s in theme %s", cn, variantName, themeName)
+			}
+		}
+	}
 }
 
 // KnownThemeVariants returns the known theme variants mapped by a descriptive key.
@@ -90,7 +111,6 @@ func NewTheme() fyne.Theme {
 			theme.ColorNamePressed:             blue(250),
 			theme.ColorNamePrimary:             green(255),
 			theme.ColorNameScrollBar:           blue(220),
-			theme.ColorNameScrollBarBackground: red(20),
 			theme.ColorNameSelection:           red(55),
 			theme.ColorNameSeparator:           gray(30),
 			theme.ColorNameShadow:              blue(150),
@@ -153,7 +173,6 @@ func Theme() fyne.Theme {
 				theme.ColorNamePressed:             color.NRGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x33},
 				theme.ColorNamePrimary:             color.NRGBA{R: 0xff, G: 0xc0, B: 0x80, A: 0xff},
 				theme.ColorNameScrollBar:           color.NRGBA{R: 0x00, G: 0x00, B: 0x00, A: 0xaa},
-				theme.ColorNameScrollBarBackground: color.NRGBA{R: 0x67, G: 0x66, B: 0x66, A: 0xff},
 				theme.ColorNameSelection:           color.NRGBA{R: 0x78, G: 0x3a, B: 0x3a, A: 0x99},
 				theme.ColorNameSeparator:           color.NRGBA{R: 0x90, G: 0x90, B: 0x90, A: 0xff},
 				theme.ColorNameShadow:              color.NRGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x88},
@@ -170,25 +189,21 @@ func Theme() fyne.Theme {
 			},
 			name: "Default Test Theme",
 			sizes: map[fyne.ThemeSizeName]float32{
-				theme.SizeNameInlineIcon:           float32(20),
-				theme.SizeNameInnerPadding:         float32(8),
-				theme.SizeNameLineSpacing:          float32(4),
-				theme.SizeNamePadding:              float32(4),
-				theme.SizeNameScrollBar:            float32(16),
-				theme.SizeNameScrollBarSmall:       float32(3),
-				theme.SizeNameSeparatorThickness:   float32(1),
-				theme.SizeNameText:                 float32(14),
-				theme.SizeNameHeadingText:          float32(23.8),
-				theme.SizeNameSubHeadingText:       float32(18),
-				theme.SizeNameCaptionText:          float32(11),
-				theme.SizeNameInputBorder:          float32(2),
-				theme.SizeNameInputRadius:          float32(4),
-				theme.SizeNameSelectionRadius:      float32(4),
-				theme.SizeNameScrollBarRadius:      float32(3),
-				theme.SizeNameWindowTitleBarHeight: float32(20),
-				theme.SizeNameWindowButtonHeight:   float32(10),
-				theme.SizeNameWindowButtonIcon:     float32(8),
-				theme.SizeNameWindowButtonRadius:   float32(5),
+				theme.SizeNameInlineIcon:         float32(20),
+				theme.SizeNameInnerPadding:       float32(8),
+				theme.SizeNameLineSpacing:        float32(4),
+				theme.SizeNamePadding:            float32(4),
+				theme.SizeNameScrollBar:          float32(16),
+				theme.SizeNameScrollBarSmall:     float32(3),
+				theme.SizeNameSeparatorThickness: float32(1),
+				theme.SizeNameText:               float32(14),
+				theme.SizeNameHeadingText:        float32(23.8),
+				theme.SizeNameSubHeadingText:     float32(18),
+				theme.SizeNameCaptionText:        float32(11),
+				theme.SizeNameInputBorder:        float32(2),
+				theme.SizeNameInputRadius:        float32(4),
+				theme.SizeNameSelectionRadius:    float32(4),
+				theme.SizeNameScrollBarRadius:    float32(3),
 			},
 		}
 	}

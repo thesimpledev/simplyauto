@@ -2,10 +2,10 @@
 
 package dialog
 
-func fileOpenOSOverride(_ *FileDialog) bool {
+func fileOpenOSOverride(d *FileDialog) bool {
 	return false
 }
 
-func fileSaveOSOverride(_ *FileDialog) bool {
+func fileSaveOSOverride(d *FileDialog) bool {
 	return false
 }

@@ -7,8 +7,6 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-var _ fyne.Widget = (*PopUp)(nil)
-
 // PopUp is a widget that can float above the user interface.
 // It wraps any standard elements with padding and a shadow.
 // If it is modal then the shadow will cover the entire canvas it hovers over and block interactions.
@@ -46,6 +44,8 @@ func (p *PopUp) Move(pos fyne.Position) {
 // Resize changes the size of the PopUp's content.
 // PopUps always have the size of their canvas, but this call updates the
 // size of the content portion.
+//
+// Implements: fyne.Widget
 func (p *PopUp) Resize(size fyne.Size) {
 	p.innerSize = size
 	// The canvas size might not have changed and therefore the Resize won't trigger a layout.
@@ -76,18 +76,16 @@ func (p *PopUp) ShowAtRelativePosition(rel fyne.Position, to fyne.CanvasObject) 
 	withRelativePosition(rel, to, p.ShowAtPosition)
 }
 
-// Tapped is called when the user taps the popUp.
-// If not modal and the tap is outside the content area, then dismiss this widget
-func (p *PopUp) Tapped(e *fyne.PointEvent) {
-	if !p.modal && !p.isInsideContent(e.Position) {
+// Tapped is called when the user taps the popUp background - if not modal then dismiss this widget
+func (p *PopUp) Tapped(_ *fyne.PointEvent) {
+	if !p.modal {
 		p.Hide()
 	}
 }
 
-// TappedSecondary is called when the user right/alt taps the popUp.
-// If not modal and the tap is outside the content area, then dismiss this widget
-func (p *PopUp) TappedSecondary(e *fyne.PointEvent) {
-	if !p.modal && !p.isInsideContent(e.Position) {
+// TappedSecondary is called when the user right/alt taps the background - if not modal then dismiss this widget
+func (p *PopUp) TappedSecondary(_ *fyne.PointEvent) {
+	if !p.modal {
 		p.Hide()
 	}
 }
@@ -119,12 +117,6 @@ func (p *PopUp) CreateRenderer() fyne.WidgetRenderer {
 		widget.NewShadowingRenderer(objects, widget.PopUpLevel),
 		popUpBaseRenderer{popUp: p, background: background},
 	}
-}
-
-func (p *PopUp) isInsideContent(pos fyne.Position) bool {
-	return pos.X >= p.innerPos.X && pos.Y >= p.innerPos.Y &&
-		pos.X <= p.innerPos.X+p.innerSize.Width &&
-		pos.Y <= p.innerPos.Y+p.innerSize.Height
 }
 
 // ShowPopUpAtPosition creates a new popUp for the specified content at the specified absolute position.

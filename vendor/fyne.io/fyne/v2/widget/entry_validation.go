@@ -39,7 +39,7 @@ func (e *Entry) SetOnValidationChanged(callback func(error)) {
 
 // SetValidationError manually updates the validation status until the next input change.
 func (e *Entry) SetValidationError(err error) {
-	if e.Validator == nil && !e.AlwaysShowValidationError {
+	if e.Validator == nil {
 		return
 	}
 
@@ -60,10 +60,9 @@ func (e *Entry) setValidationError(err error) bool {
 		return false
 	}
 
-	changed := e.validationError != err
 	e.validationError = err
 
-	if e.onValidationChanged != nil && changed {
+	if e.onValidationChanged != nil {
 		e.onValidationChanged(err)
 	}
 
@@ -117,15 +116,17 @@ func (r *validationStatusRenderer) MinSize() fyne.Size {
 
 func (r *validationStatusRenderer) Refresh() {
 	th := r.entry.Theme()
-	if r.entry.Disabled() {
+	r.entry.propertyLock.RLock()
+	defer r.entry.propertyLock.RUnlock()
+	if r.entry.disabled.Load() {
 		r.icon.Hide()
 		return
 	}
 
-	if r.entry.validationError == nil && r.entry.Text != "" && r.entry.Validator != nil {
+	if r.entry.validationError == nil && r.entry.Text != "" {
 		r.icon.Resource = th.Icon(theme.IconNameConfirm)
 		r.icon.Show()
-	} else if r.entry.validationError != nil && !r.entry.focused && (r.entry.dirty || r.entry.AlwaysShowValidationError) {
+	} else if r.entry.validationError != nil && !r.entry.focused && r.entry.dirty {
 		r.icon.Resource = theme.NewErrorThemedResource(th.Icon(theme.IconNameError))
 		r.icon.Show()
 	} else {

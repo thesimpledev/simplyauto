@@ -8,8 +8,6 @@ import (
 	"fyne.io/fyne/v2/internal/widget"
 )
 
-var _ fyne.Widget = (*CheckGroup)(nil)
-
 // CheckGroup widget has a list of text labels and checkbox icons next to each.
 // Changing the selection (any number can be selected) will trigger the changed func.
 //
@@ -24,6 +22,8 @@ type CheckGroup struct {
 
 	items []*Check
 }
+
+var _ fyne.Widget = (*CheckGroup)(nil)
 
 // NewCheckGroup creates a new check group widget with the set options and change handler
 //
@@ -48,6 +48,8 @@ func (r *CheckGroup) Append(option string) {
 // CreateRenderer is a private method to Fyne which links this widget to its renderer
 func (r *CheckGroup) CreateRenderer() fyne.WidgetRenderer {
 	r.ExtendBaseWidget(r)
+	r.propertyLock.Lock()
+	defer r.propertyLock.Unlock()
 
 	r.update()
 	objects := make([]fyne.CanvasObject, len(r.items))
@@ -65,8 +67,12 @@ func (r *CheckGroup) MinSize() fyne.Size {
 }
 
 // Refresh causes this widget to be redrawn in it's current state.
+//
+// Implements: fyne.CanvasObject
 func (r *CheckGroup) Refresh() {
+	r.propertyLock.Lock()
 	r.update()
+	r.propertyLock.Unlock()
 	r.BaseWidget.Refresh()
 }
 
@@ -162,7 +168,7 @@ func (r *CheckGroup) update() {
 
 		item.Text = r.Options[i]
 		item.Checked = contains
-		item.DisableableWidget.disabled = r.Disabled()
+		item.DisableableWidget.disabled.Store(r.disabled.Load())
 		item.Refresh()
 	}
 }
@@ -255,7 +261,7 @@ func (r *checkGroupRenderer) updateItems() {
 		}
 		item.Text = r.checks.Options[i]
 		item.Checked = contains
-		item.disabled = r.checks.Disabled()
+		item.disabled.Store(r.checks.disabled.Load())
 		item.Refresh()
 	}
 }

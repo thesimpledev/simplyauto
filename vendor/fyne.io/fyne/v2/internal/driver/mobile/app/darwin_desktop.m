@@ -136,7 +136,7 @@ uint64 threadID() {
 }
 
 - (void)windowWillClose:(NSNotification *)notification {
-	lifecycleDead();
+	lifecycleAlive();
 }
 
 - (BOOL)acceptsFirstResponder {

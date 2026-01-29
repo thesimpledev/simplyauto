@@ -11,10 +11,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-var (
-	_ fyne.Widget       = (*colorButton)(nil)
-	_ desktop.Hoverable = (*colorButton)(nil)
-)
+var _ fyne.Widget = (*colorButton)(nil)
+var _ desktop.Hoverable = (*colorButton)(nil)
 
 // colorButton displays a color and triggers the callback when tapped.
 type colorButton struct {

@@ -40,11 +40,13 @@ func toNativePtr(s string) *uint16 {
 
 // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messageboxw
 func messageBoxError(text, caption string) {
+
 	uType := MB_OK | MB_ICONERROR
 
-	syscall.SyscallN(MessageBox.Addr(),
+	syscall.Syscall6(MessageBox.Addr(), 4,
 		uintptr(unsafe.Pointer(nil)), uintptr(unsafe.Pointer(toNativePtr(text))),
-		uintptr(unsafe.Pointer(toNativePtr(caption))), uintptr(uType))
+		uintptr(unsafe.Pointer(toNativePtr(caption))), uintptr(uType),
+		0, 0)
 }
 
 func logError(msg string, err error) {
@@ -67,14 +69,14 @@ func setDisableScreenBlank(disable bool) {
 		uType |= ES_DISPLAY_REQUIRED
 	}
 
-	syscall.SyscallN(executionState.Addr(), uintptr(uType))
+	syscall.Syscall(executionState.Addr(), 1, uintptr(uType), 0, 0)
 }
 
-func (d *gLDriver) DoubleTapDelay() time.Duration {
+func (g *gLDriver) DoubleTapDelay() time.Duration {
 	// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getdoubleclicktime
 	if getDoubleClickTime == nil {
 		return desktopDefaultDoubleTapDelay
 	}
-	r1, _, _ := syscall.SyscallN(getDoubleClickTime.Addr())
+	r1, _, _ := syscall.Syscall(getDoubleClickTime.Addr(), 0, 0, 0, 0)
 	return time.Duration(uint64(r1) * uint64(time.Millisecond))
 }

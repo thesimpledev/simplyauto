@@ -2,15 +2,15 @@ package cache
 
 import (
 	"strconv"
+	"sync"
 	"sync/atomic"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/internal/async"
 )
 
 var (
-	overrides     async.Map[fyne.CanvasObject, *overrideScope]
-	overrideCount atomic.Uint32
+	overrides     = &sync.Map{} // map[fyne.Widget]*overrideScope
+	overrideCount = atomic.Uint32{}
 )
 
 type overrideScope struct {
@@ -30,31 +30,32 @@ func OverrideTheme(o fyne.CanvasObject, th fyne.Theme) {
 }
 
 func OverrideThemeMatchingScope(o, parent fyne.CanvasObject) bool {
-	scope, ok := overrides.Load(parent)
+	data, ok := overrides.Load(parent)
 	if !ok { // not overridden in parent
 		return false
 	}
 
+	scope := data.(*overrideScope)
 	overrideTheme(o, scope)
 	return true
 }
 
 func WidgetScopeID(o fyne.CanvasObject) string {
-	scope, ok := overrides.Load(o)
+	data, ok := overrides.Load(o)
 	if !ok {
 		return ""
 	}
 
-	return scope.cacheID
+	return data.(*overrideScope).cacheID
 }
 
 func WidgetTheme(o fyne.CanvasObject) fyne.Theme {
-	scope, ok := overrides.Load(o)
+	data, ok := overrides.Load(o)
 	if !ok {
 		return nil
 	}
 
-	return scope.th
+	return data.(*overrideScope).th
 }
 
 func overrideContainer(c *fyne.Container, s *overrideScope) {
@@ -64,10 +65,6 @@ func overrideContainer(c *fyne.Container, s *overrideScope) {
 }
 
 func overrideTheme(o fyne.CanvasObject, s *overrideScope) {
-	if _, ok := o.(interface{ SetDeviceIsMobile(bool) }); ok { // ThemeOverride without the import loop
-		return // do not apply this theme over a new scope
-	}
-
 	switch c := o.(type) {
 	case fyne.Widget:
 		overrideWidget(c, s)

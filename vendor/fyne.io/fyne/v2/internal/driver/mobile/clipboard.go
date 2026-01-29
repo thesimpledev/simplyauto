@@ -5,11 +5,8 @@ import (
 )
 
 // Declare conformity with Clipboard interface
-var _ fyne.Clipboard = mobileClipboard{}
-
-func NewClipboard() fyne.Clipboard {
-	return mobileClipboard{}
-}
+var _ fyne.Clipboard = (*mobileClipboard)(nil)
 
 // mobileClipboard represents the system mobileClipboard
-type mobileClipboard struct{}
+type mobileClipboard struct {
+}

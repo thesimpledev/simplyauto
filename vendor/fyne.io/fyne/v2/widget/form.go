@@ -26,7 +26,6 @@ type FormItem struct {
 	validationError error
 	invalid         bool
 	helperOutput    *canvas.Text
-	wasFocused      bool
 }
 
 // NewFormItem creates a new form item with the specified label text and input widget
@@ -196,13 +195,11 @@ func (f *Form) itemWidgetHasValidator(w fyne.CanvasObject) bool {
 func (f *Form) createLabel(text string) fyne.CanvasObject {
 	th := f.Theme()
 	v := fyne.CurrentApp().Settings().ThemeVariant()
-	label := &canvas.Text{
-		Text:      text,
+	label := &canvas.Text{Text: text,
 		Alignment: fyne.TextAlignTrailing,
 		Color:     th.Color(theme.ColorNameForeground, v),
 		TextSize:  th.Size(theme.SizeNameText),
-		TextStyle: fyne.TextStyle{Bold: true},
-	}
+		TextStyle: fyne.TextStyle{Bold: true}}
 	if f.isVertical() {
 		label.Alignment = fyne.TextAlignLeading
 	}
@@ -300,9 +297,6 @@ func (f *Form) isVertical() bool {
 
 func (f *Form) setUpValidation(widget fyne.CanvasObject, i int) {
 	updateValidation := func(err error) {
-		if i >= len(f.Items) {
-			return // called after form has been truncated
-		}
 		if err == errFormItemInitialState {
 			return
 		}
@@ -357,27 +351,15 @@ func (f *Form) updateHelperText(item *FormItem) {
 		return // testing probably, either way not rendered yet
 	}
 	showHintIfError := false
-	if e, ok := item.Widget.(*Entry); ok {
-		if !e.dirty || (e.focused && !item.wasFocused) {
-			showHintIfError = true
-		}
-		if e.dirty && !e.focused {
-			item.wasFocused = true
-		}
+	if e, ok := item.Widget.(*Entry); ok && (!e.dirty || e.focused) {
+		showHintIfError = true
 	}
-
 	if item.validationError == nil || showHintIfError {
 		item.helperOutput.Text = item.HintText
 		item.helperOutput.Color = th.Color(theme.ColorNamePlaceHolder, v)
 	} else {
 		item.helperOutput.Text = item.validationError.Error()
 		item.helperOutput.Color = th.Color(theme.ColorNameError, v)
-	}
-
-	if item.helperOutput.Text == "" {
-		item.helperOutput.Hide()
-	} else {
-		item.helperOutput.Show()
 	}
 	item.helperOutput.Refresh()
 }
@@ -490,11 +472,5 @@ func (f formItemLayout) MinSize(objs []fyne.CanvasObject) fyne.Size {
 	min1 := objs[1].MinSize()
 
 	minWidth := fyne.Max(min0.Width, min1.Width)
-	height := min0.Height
-
-	items := objs[1].(*fyne.Container).Objects
-	if len(items) > 0 && items[0].(*canvas.Text).Text != "" {
-		height += min1.Height + innerPad
-	}
-	return fyne.NewSize(minWidth, height)
+	return fyne.NewSize(minWidth, min0.Height+min1.Height+innerPad)
 }

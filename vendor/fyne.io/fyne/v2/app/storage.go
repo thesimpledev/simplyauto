@@ -19,10 +19,6 @@ func (s *store) RootURI() fyne.URI {
 		return storage.NewFileURI(os.TempDir())
 	}
 
-	u, err := storage.ParseURI(s.a.storageRoot())
-	if err == nil {
-		return u
-	}
 	return storage.NewFileURI(s.a.storageRoot())
 }
 

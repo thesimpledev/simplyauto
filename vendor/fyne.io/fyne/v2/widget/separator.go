@@ -29,6 +29,8 @@ func NewSeparator() *Separator {
 }
 
 // CreateRenderer returns a new renderer for the separator.
+//
+// Implements: fyne.Widget
 func (s *Separator) CreateRenderer() fyne.WidgetRenderer {
 	s.ExtendBaseWidget(s)
 	th := s.Theme()
@@ -49,6 +51,8 @@ func (s *Separator) CreateRenderer() fyne.WidgetRenderer {
 }
 
 // MinSize returns the minimal size of the separator.
+//
+// Implements: fyne.Widget
 func (s *Separator) MinSize() fyne.Size {
 	s.ExtendBaseWidget(s)
 	return s.BaseWidget.MinSize()

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/internal/async"
 	intdriver "fyne.io/fyne/v2/internal/driver"
 	"fyne.io/fyne/v2/internal/painter"
 	"fyne.io/fyne/v2/internal/painter/software"
@@ -48,12 +47,6 @@ func NewDriver() fyne.Driver {
 // painter to all canvases created
 func NewDriverWithPainter(painter SoftwarePainter) fyne.Driver {
 	return &driver{painter: painter}
-}
-
-// DoFromGoroutine on a test driver ignores the wait flag as our threading is simple
-func (d *driver) DoFromGoroutine(f func(), _ bool) {
-	// Tests all run on a single (but potentially different per-test) thread
-	async.EnsureNotMain(f)
 }
 
 func (d *driver) AbsolutePositionForObject(co fyne.CanvasObject) fyne.Position {
@@ -121,10 +114,6 @@ func (d *driver) StopAnimation(a *fyne.Animation) {
 
 func (d *driver) Quit() {
 	// no-op
-}
-
-func (d *driver) Clipboard() fyne.Clipboard {
-	return nil
 }
 
 func (d *driver) removeWindow(w *window) {

@@ -31,12 +31,14 @@ func (i *iconRenderer) Refresh() {
 		return
 	}
 
+	i.image.propertyLock.RLock()
 	i.raster.Resource = i.image.Resource
 	i.image.cachedRes = i.image.Resource
 
 	if i.image.Resource == nil {
 		i.raster.Image = nil // reset the internal caching too...
 	}
+	i.image.propertyLock.RUnlock()
 
 	i.raster.Refresh()
 }
@@ -64,6 +66,8 @@ func (i *Icon) MinSize() fyne.Size {
 // CreateRenderer is a private method to Fyne which links this widget to its renderer
 func (i *Icon) CreateRenderer() fyne.WidgetRenderer {
 	i.ExtendBaseWidget(i)
+	i.propertyLock.RLock()
+	defer i.propertyLock.RUnlock()
 
 	img := canvas.NewImageFromResource(i.Resource)
 	img.FillMode = canvas.ImageFillContain

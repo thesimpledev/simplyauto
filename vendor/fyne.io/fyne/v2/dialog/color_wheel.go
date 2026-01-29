@@ -15,11 +15,9 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-var (
-	_ fyne.Widget    = (*colorWheel)(nil)
-	_ fyne.Tappable  = (*colorWheel)(nil)
-	_ fyne.Draggable = (*colorWheel)(nil)
-)
+var _ fyne.Widget = (*colorWheel)(nil)
+var _ fyne.Tappable = (*colorWheel)(nil)
+var _ fyne.Draggable = (*colorWheel)(nil)
 
 // colorWheel displays a circular color gradient and triggers the callback when tapped.
 type colorWheel struct {
@@ -139,7 +137,7 @@ func (a *colorWheel) locationForPosition(pos fyne.Position) (x, y int) {
 	if can != nil {
 		x, y = can.PixelCoordinateForPosition(pos)
 	}
-	return x, y
+	return
 }
 
 func (a *colorWheel) selection(width, height float32) (float32, float32) {

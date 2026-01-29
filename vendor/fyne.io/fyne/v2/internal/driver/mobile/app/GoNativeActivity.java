@@ -14,7 +14,6 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
-import android.text.method.DigitsKeyListener;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyCharacterMap;
@@ -90,7 +89,6 @@ public class GoNativeActivity extends NativeActivity {
             public void run() {
                 int imeOptions = EditorInfo.IME_FLAG_NO_ENTER_ACTION;
                 int inputType = DEFAULT_INPUT_TYPE;
-                String keys = "";
                 switch (keyboardType) {
                     case DEFAULT_KEYBOARD_CODE:
                         imeOptions = EditorInfo.IME_FLAG_NO_ENTER_ACTION;
@@ -101,19 +99,15 @@ public class GoNativeActivity extends NativeActivity {
                     case NUMBER_KEYBOARD_CODE:
                         imeOptions = EditorInfo.IME_ACTION_DONE;
                         inputType |= InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_NORMAL;
-                        keys = "0123456789.,-' "; // work around android bug where some number keys are blocked
                         break;
                     case PASSWORD_KEYBOARD_CODE:
                         imeOptions = EditorInfo.IME_ACTION_DONE;
-                        inputType |= InputType.TYPE_TEXT_VARIATION_PASSWORD;
+                        inputType |= InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
                     default:
                         Log.e("Fyne", "unknown keyboard type, use default");
                 }
                 mTextEdit.setImeOptions(imeOptions|EditorInfo.IME_FLAG_NO_FULLSCREEN);
                 mTextEdit.setInputType(inputType);
-                if (keys != "") {
-                    mTextEdit.setKeyListener(DigitsKeyListener.getInstance(keys));
-                }
 
                 mTextEdit.setOnEditorActionListener(new OnEditorActionListener() {
                     @Override
@@ -127,7 +121,7 @@ public class GoNativeActivity extends NativeActivity {
 
                 // always place one character so all keyboards can send backspace
                 ignoreKey = true;
-                mTextEdit.setText(" ");
+                mTextEdit.setText("0");
                 mTextEdit.setSelection(mTextEdit.getText().length());
                 ignoreKey = false;
 
@@ -263,7 +257,7 @@ public class GoNativeActivity extends NativeActivity {
                 addContentView(mTextEdit, mEditTextLayoutParams);
 
                 // always place one character so all keyboards can send backspace
-                mTextEdit.setText(" ");
+                mTextEdit.setText("0");
                 mTextEdit.setSelection(mTextEdit.getText().length());
 
                 mTextEdit.addTextChangedListener(new TextWatcher() {
@@ -295,7 +289,7 @@ public class GoNativeActivity extends NativeActivity {
                         // always place one character so all keyboards can send backspace
                         if (s.length() < 1) {
                             ignoreKey = true;
-                            mTextEdit.setText(" ");
+                            mTextEdit.setText("0");
                             mTextEdit.setSelection(mTextEdit.getText().length());
                             ignoreKey = false;
                             return;

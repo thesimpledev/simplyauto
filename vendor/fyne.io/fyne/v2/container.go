@@ -1,5 +1,7 @@
 package fyne
 
+import "sync"
+
 // Declare conformity to [CanvasObject]
 var _ CanvasObject = (*Container)(nil)
 
@@ -10,7 +12,8 @@ type Container struct {
 	position Position // The current position of the Container
 	Hidden   bool     // Is this Container hidden
 
-	Layout  Layout         // The Layout algorithm for arranging child [CanvasObject]s
+	Layout  Layout // The Layout algorithm for arranging child [CanvasObject]s
+	lock    sync.Mutex
 	Objects []CanvasObject // The set of [CanvasObject]s this container holds
 }
 
@@ -57,6 +60,8 @@ func (c *Container) Add(add CanvasObject) {
 		return
 	}
 
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	c.Objects = append(c.Objects, add)
 	c.layout()
 }
@@ -104,7 +109,7 @@ func (c *Container) Position() Position {
 	return c.position
 }
 
-// Refresh causes this object to be redrawn in its current state
+// Refresh causes this object to be redrawn in it's current state
 func (c *Container) Refresh() {
 	c.layout()
 
@@ -124,6 +129,8 @@ func (c *Container) Refresh() {
 // This method is not intended to be used inside a loop, to remove all the elements.
 // It is much more efficient to call [Container.RemoveAll) instead.
 func (c *Container) Remove(rem CanvasObject) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if len(c.Objects) == 0 {
 		return
 	}
@@ -132,9 +139,12 @@ func (c *Container) Remove(rem CanvasObject) {
 		if o != rem {
 			continue
 		}
-		copy(c.Objects[i:], c.Objects[i+1:])
-		c.Objects[len(c.Objects)-1] = nil
-		c.Objects = c.Objects[:len(c.Objects)-1]
+
+		removed := make([]CanvasObject, len(c.Objects)-1)
+		copy(removed, c.Objects[:i])
+		copy(removed[i:], c.Objects[i+1:])
+
+		c.Objects = removed
 		c.layout()
 		return
 	}

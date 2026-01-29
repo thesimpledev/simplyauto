@@ -7,11 +7,9 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-var (
-	_ desktop.Cursorable = (*passwordRevealer)(nil)
-	_ fyne.Tappable      = (*passwordRevealer)(nil)
-	_ fyne.Widget        = (*passwordRevealer)(nil)
-)
+var _ desktop.Cursorable = (*passwordRevealer)(nil)
+var _ fyne.Tappable = (*passwordRevealer)(nil)
+var _ fyne.Widget = (*passwordRevealer)(nil)
 
 type passwordRevealer struct {
 	BaseWidget
@@ -69,18 +67,20 @@ func (r *passwordRevealerRenderer) Layout(size fyne.Size) {
 
 func (r *passwordRevealerRenderer) MinSize() fyne.Size {
 	iconSize := r.entry.Theme().Size(theme.SizeNameInlineIcon)
-	return fyne.NewSquareSize(iconSize + r.entry.Theme().Size(theme.SizeNameInnerPadding)*2)
+	return fyne.NewSquareSize(iconSize)
 }
 
 func (r *passwordRevealerRenderer) Refresh() {
 	th := r.entry.Theme()
+	r.entry.propertyLock.RLock()
+	defer r.entry.propertyLock.RUnlock()
 	if !r.entry.Password {
 		r.icon.Resource = th.Icon(theme.IconNameVisibility)
 	} else {
 		r.icon.Resource = th.Icon(theme.IconNameVisibilityOff)
 	}
 
-	if r.entry.Disabled() {
+	if r.entry.disabled.Load() {
 		r.icon.Resource = theme.NewDisabledResource(r.icon.Resource)
 	}
 	r.icon.Refresh()

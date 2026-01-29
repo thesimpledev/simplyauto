@@ -14,12 +14,11 @@ bool iosExistsPath(const char* path);
 void* iosParseUrl(const char* url);
 const void* iosReadFromURL(void* url, int* len);
 
-const void* iosOpenFileWriter(void* url, bool truncate);
+const void* iosOpenFileWriter(void* url);
 void iosCloseFileWriter(void* handle);
 const int iosWriteToFile(void* handle, const void* bytes, int len);
 */
 import "C"
-
 import (
 	"errors"
 	"io"
@@ -137,7 +136,7 @@ func nativeFileOpen(f *fileOpen) (io.ReadCloser, error) {
 	return fileStruct, nil
 }
 
-func nativeFileSave(f *fileSave, truncate bool) (io.WriteCloser, error) {
+func nativeFileSave(f *fileSave) (io.WriteCloser, error) {
 	if f.uri == nil || f.uri.String() == "" {
 		return nil, nil
 	}
@@ -147,7 +146,7 @@ func nativeFileSave(f *fileSave, truncate bool) (io.WriteCloser, error) {
 
 	url := C.iosParseUrl(cStr)
 
-	handle := C.iosOpenFileWriter(url, C.bool(truncate))
+	handle := C.iosOpenFileWriter(url)
 	fileStruct := &secureWriteCloser{handle: handle, closer: f.done}
 	return fileStruct, nil
 }

@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fyne-io/oksvg"
+	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
 
 	"fyne.io/fyne/v2"
@@ -21,20 +21,23 @@ import (
 )
 
 // Colorize creates a new SVG from a given one by replacing all fill colors by the given color.
-func Colorize(src []byte, clr color.Color) ([]byte, error) {
+func Colorize(src []byte, clr color.Color) []byte {
 	rdr := bytes.NewReader(src)
 	s, err := svgFromXML(rdr)
 	if err != nil {
-		return src, fmt.Errorf("could not load SVG, falling back to static content: %v", err)
+		fyne.LogError("could not load SVG, falling back to static content:", err)
+		return src
 	}
 	if err := s.replaceFillColor(clr); err != nil {
-		return src, fmt.Errorf("could not replace fill color, falling back to static content: %v", err)
+		fyne.LogError("could not replace fill color, falling back to static content:", err)
+		return src
 	}
 	colorized, err := xml.Marshal(s)
 	if err != nil {
-		return src, fmt.Errorf("could not marshal svg, falling back to static content: %v", err)
+		fyne.LogError("could not marshal svg, falling back to static content:", err)
+		return src
 	}
-	return colorized, nil
+	return colorized
 }
 
 type Decoder struct {
@@ -314,7 +317,7 @@ func colorToHexAndOpacity(color color.Color) (hexStr, aStr string) {
 	r, g, b, a := col.ToNRGBA(color)
 	cBytes := []byte{byte(r), byte(g), byte(b)}
 	hexStr, aStr = "#"+hex.EncodeToString(cBytes), strconv.FormatFloat(float64(a)/0xff, 'f', 6, 64)
-	return hexStr, aStr
+	return
 }
 
 func drawSVGSafely(icon *oksvg.SvgIcon, raster *rasterx.Dasher) error {

@@ -7,7 +7,8 @@ import (
 	"fyne.io/fyne/v2/lang"
 )
 
-type glDevice struct{}
+type glDevice struct {
+}
 
 // Declare conformity with Device
 var _ fyne.Device = (*glDevice)(nil)

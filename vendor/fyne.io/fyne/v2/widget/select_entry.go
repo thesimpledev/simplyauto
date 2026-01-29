@@ -5,11 +5,6 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-var (
-	_ fyne.Widget      = (*SelectEntry)(nil)
-	_ fyne.Disableable = (*SelectEntry)(nil)
-)
-
 // SelectEntry is an input field which supports selecting from a fixed set of options.
 type SelectEntry struct {
 	Entry
@@ -27,6 +22,8 @@ func NewSelectEntry(options []string) *SelectEntry {
 }
 
 // CreateRenderer returns a new renderer for this select entry.
+//
+// Implements: fyne.Widget
 func (e *SelectEntry) CreateRenderer() fyne.WidgetRenderer {
 	e.ExtendBaseWidget(e)
 	e.SetOptions(e.options)
@@ -34,6 +31,8 @@ func (e *SelectEntry) CreateRenderer() fyne.WidgetRenderer {
 }
 
 // Enable this widget, updating any style or features appropriately.
+//
+// Implements: fyne.DisableableWidget
 func (e *SelectEntry) Enable() {
 	if e.ActionItem != nil {
 		e.ActionItem.(fyne.Disableable).Enable()
@@ -42,6 +41,8 @@ func (e *SelectEntry) Enable() {
 }
 
 // Disable this widget so that it cannot be interacted with, updating any style appropriately.
+//
+// Implements: fyne.DisableableWidget
 func (e *SelectEntry) Disable() {
 	if e.ActionItem != nil {
 		e.ActionItem.(fyne.Disableable).Disable()
@@ -50,12 +51,16 @@ func (e *SelectEntry) Disable() {
 }
 
 // MinSize returns the minimal size of the select entry.
+//
+// Implements: fyne.Widget
 func (e *SelectEntry) MinSize() fyne.Size {
 	e.ExtendBaseWidget(e)
 	return e.Entry.MinSize()
 }
 
 // Move changes the relative position of the select entry.
+//
+// Implements: fyne.Widget
 func (e *SelectEntry) Move(pos fyne.Position) {
 	e.Entry.Move(pos)
 	if e.popUp != nil {
@@ -64,6 +69,8 @@ func (e *SelectEntry) Move(pos fyne.Position) {
 }
 
 // Resize changes the size of the select entry.
+//
+// Implements: fyne.Widget
 func (e *SelectEntry) Resize(size fyne.Size) {
 	e.Entry.Resize(size)
 	if e.popUp != nil {

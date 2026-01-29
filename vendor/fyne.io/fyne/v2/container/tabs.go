@@ -1,12 +1,13 @@
 package container
 
 import (
+	"sync"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/internal"
 	"fyne.io/fyne/v2/internal/build"
-	intTheme "fyne.io/fyne/v2/internal/theme"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -21,26 +22,25 @@ type TabItem struct {
 	Content fyne.CanvasObject
 
 	button *tabButton
-
-	disabled bool
 }
 
 // Disabled returns whether or not the TabItem is disabled.
 //
 // Since: 2.3
 func (ti *TabItem) Disabled() bool {
-	return ti.disabled
+	if ti.button != nil {
+		return ti.button.Disabled()
+	}
+	return false
 }
 
 func (ti *TabItem) disable() {
-	ti.disabled = true
 	if ti.button != nil {
 		ti.button.Disable()
 	}
 }
 
 func (ti *TabItem) enable() {
-	ti.disabled = false
 	if ti.button != nil {
 		ti.button.Enable()
 	}
@@ -91,20 +91,10 @@ type baseTabs interface {
 	setTransitioning(bool)
 }
 
-func isMobile(b baseTabs) bool {
-	d := fyne.CurrentDevice()
-	mobile := intTheme.FeatureForWidget(intTheme.FeatureNameDeviceIsMobile, b)
-	if is, ok := mobile.(bool); ok {
-		return is
-	}
-
-	return d.IsMobile()
-}
-
-func tabsAdjustedLocation(l TabLocation, b baseTabs) TabLocation {
+func tabsAdjustedLocation(l TabLocation) TabLocation {
 	// Mobile has limited screen space, so don't put app tab bar on long edges
-	if isMobile(b) {
-		if o := fyne.CurrentDevice().Orientation(); fyne.IsVertical(o) {
+	if d := fyne.CurrentDevice(); d.IsMobile() {
+		if o := d.Orientation(); fyne.IsVertical(o) {
 			if l == TabLocationLeading {
 				return TabLocationTop
 			} else if l == TabLocationTrailing {
@@ -298,6 +288,7 @@ func enableItem(t baseTabs, item *TabItem) {
 type baseTabsRenderer struct {
 	positionAnimation, sizeAnimation *fyne.Animation
 
+	lastIndicatorMutex  sync.RWMutex
 	lastIndicatorPos    fyne.Position
 	lastIndicatorSize   fyne.Size
 	lastIndicatorHidden bool
@@ -425,8 +416,10 @@ func (r *baseTabsRenderer) minSize(t baseTabs) fyne.Size {
 }
 
 func (r *baseTabsRenderer) moveIndicator(pos fyne.Position, siz fyne.Size, th fyne.Theme, animate bool) {
-	isSameState := r.lastIndicatorPos == pos && r.lastIndicatorSize == siz &&
+	r.lastIndicatorMutex.RLock()
+	isSameState := r.lastIndicatorPos.Subtract(pos).IsZero() && r.lastIndicatorSize.Subtract(siz).IsZero() &&
 		r.lastIndicatorHidden == r.indicator.Hidden
+	r.lastIndicatorMutex.RUnlock()
 	if isSameState {
 		return
 	}
@@ -449,9 +442,11 @@ func (r *baseTabsRenderer) moveIndicator(pos fyne.Position, siz fyne.Size, th fy
 		return
 	}
 
+	r.lastIndicatorMutex.Lock()
 	r.lastIndicatorPos = pos
 	r.lastIndicatorSize = siz
 	r.lastIndicatorHidden = r.indicator.Hidden
+	r.lastIndicatorMutex.Unlock()
 
 	if animate && fyne.CurrentApp().Settings().ShowAnimations() {
 		r.positionAnimation = canvas.NewPositionAnimation(r.indicator.Position(), pos, canvas.DurationShort, func(p fyne.Position) {
@@ -503,11 +498,9 @@ const (
 	buttonIconTop
 )
 
-var (
-	_ fyne.Widget       = (*tabButton)(nil)
-	_ fyne.Tappable     = (*tabButton)(nil)
-	_ desktop.Hoverable = (*tabButton)(nil)
-)
+var _ fyne.Widget = (*tabButton)(nil)
+var _ fyne.Tappable = (*tabButton)(nil)
+var _ desktop.Hoverable = (*tabButton)(nil)
 
 type tabButton struct {
 	widget.DisableableWidget
@@ -519,8 +512,6 @@ type tabButton struct {
 	onClosed      func()
 	text          string
 	textAlignment fyne.TextAlign
-
-	tabs baseTabs
 }
 
 func (b *tabButton) CreateRenderer() fyne.WidgetRenderer {
@@ -551,7 +542,7 @@ func (b *tabButton) CreateRenderer() fyne.WidgetRenderer {
 	close.Hide()
 
 	objects := []fyne.CanvasObject{background, label, close, icon}
-	return &tabButtonRenderer{
+	r := &tabButtonRenderer{
 		button:     b,
 		background: background,
 		icon:       icon,
@@ -559,6 +550,8 @@ func (b *tabButton) CreateRenderer() fyne.WidgetRenderer {
 		close:      close,
 		objects:    objects,
 	}
+	r.Refresh()
+	return r
 }
 
 func (b *tabButton) MinSize() fyne.Size {
@@ -727,7 +720,7 @@ func (r *tabButtonRenderer) Refresh() {
 		r.icon.Hide()
 	}
 
-	if r.button.onClosed != nil && (isMobile(r.button.tabs) || r.button.hovered || r.close.hovered) {
+	if d := fyne.CurrentDevice(); r.button.onClosed != nil && (d.IsMobile() || r.button.hovered || r.close.hovered) {
 		r.close.Show()
 	} else {
 		r.close.Hide()
@@ -754,11 +747,9 @@ func (r *tabButtonRenderer) padding() fyne.Size {
 	return fyne.NewSize(padding, padding*2)
 }
 
-var (
-	_ fyne.Widget       = (*tabCloseButton)(nil)
-	_ fyne.Tappable     = (*tabCloseButton)(nil)
-	_ desktop.Hoverable = (*tabCloseButton)(nil)
-)
+var _ fyne.Widget = (*tabCloseButton)(nil)
+var _ fyne.Tappable = (*tabCloseButton)(nil)
+var _ desktop.Hoverable = (*tabCloseButton)(nil)
 
 type tabCloseButton struct {
 	widget.BaseWidget
@@ -777,12 +768,14 @@ func (b *tabCloseButton) CreateRenderer() fyne.WidgetRenderer {
 	background.Hide()
 	icon := canvas.NewImageFromResource(theme.CancelIcon())
 
-	return &tabCloseButtonRenderer{
+	r := &tabCloseButtonRenderer{
 		button:     b,
 		background: background,
 		icon:       icon,
 		objects:    []fyne.CanvasObject{background, icon},
 	}
+	r.Refresh()
+	return r
 }
 
 func (b *tabCloseButton) MinSize() fyne.Size {
