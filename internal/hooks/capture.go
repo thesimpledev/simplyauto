@@ -14,6 +14,18 @@ import (
 	"simplyauto/pkg/events"
 )
 
+// Mouse message constants (not defined in go-hook)
+const (
+	WM_MOUSEMOVE   types.Message = 0x0200
+	WM_LBUTTONDOWN types.Message = 0x0201
+	WM_LBUTTONUP   types.Message = 0x0202
+	WM_RBUTTONDOWN types.Message = 0x0204
+	WM_RBUTTONUP   types.Message = 0x0205
+	WM_MBUTTONDOWN types.Message = 0x0207
+	WM_MBUTTONUP   types.Message = 0x0208
+	WM_MOUSEWHEEL  types.Message = 0x020A
+)
+
 type EventCallback func(event events.InputEvent)
 
 type InputCapture struct {
@@ -148,21 +160,21 @@ func (c *InputCapture) mouseLoop(ch chan types.MouseEvent) {
 			var eventType events.EventType
 
 			switch evt.Message {
-			case types.WM_MOUSEMOVE:
+			case WM_MOUSEMOVE:
 				eventType = events.EventMouseMove
-			case types.WM_LBUTTONDOWN:
+			case WM_LBUTTONDOWN:
 				eventType = events.EventMouseLeftDown
-			case types.WM_LBUTTONUP:
+			case WM_LBUTTONUP:
 				eventType = events.EventMouseLeftUp
-			case types.WM_RBUTTONDOWN:
+			case WM_RBUTTONDOWN:
 				eventType = events.EventMouseRightDown
-			case types.WM_RBUTTONUP:
+			case WM_RBUTTONUP:
 				eventType = events.EventMouseRightUp
-			case types.WM_MBUTTONDOWN:
+			case WM_MBUTTONDOWN:
 				eventType = events.EventMouseMiddleDown
-			case types.WM_MBUTTONUP:
+			case WM_MBUTTONUP:
 				eventType = events.EventMouseMiddleUp
-			case types.WM_MOUSEWHEEL:
+			case WM_MOUSEWHEEL:
 				eventType = events.EventMouseWheel
 			default:
 				continue
@@ -171,8 +183,8 @@ func (c *InputCapture) mouseLoop(ch chan types.MouseEvent) {
 			inputEvent := events.InputEvent{
 				Type:      eventType,
 				Timestamp: time.Since(c.startTime),
-				X:         int(evt.Point.X),
-				Y:         int(evt.Point.Y),
+				X:         int(evt.X),
+				Y:         int(evt.Y),
 			}
 
 			if eventType == events.EventMouseWheel {
