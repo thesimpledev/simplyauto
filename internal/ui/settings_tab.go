@@ -51,10 +51,15 @@ func (t *SettingsTab) createHotkeySelect(action app.HotkeyAction) *widget.Select
 		if !ok {
 			return
 		}
+		label := t.statusLabels[action]
 		if err := t.simplyApp.RebindHotkey(action, key); err != nil {
-			t.statusLabels[action].SetText("Error: " + err.Error())
+			if label != nil {
+				label.SetText("Error: " + err.Error())
+			}
 		} else {
-			t.statusLabels[action].SetText("Bound")
+			if label != nil {
+				label.SetText("Bound")
+			}
 		}
 	})
 	sel.SetSelected(currentKey)
