@@ -60,15 +60,19 @@ type keybdInput struct {
 }
 
 // INPUT structure (union represented as mouse - keyboard uses same memory layout with padding)
+// On 64-bit Windows, there must be 4 bytes of padding after dtype for proper alignment
+// because the union contains ULONG_PTR (dwExtraInfo) which requires 8-byte alignment.
 type inputUnion struct {
 	dtype uint32
+	_     uint32 // padding for 64-bit alignment
 	mi    mouseInput
 }
 
 type keyboardInputUnion struct {
 	dtype uint32
+	_     uint32  // padding for 64-bit alignment
 	ki    keybdInput
-	_     [16]byte // padding to match mouseInput size
+	__    [8]byte // padding to match mouseInput size (mouseInput has uintptr at end)
 }
 
 // Keycode maps key names to virtual key codes
