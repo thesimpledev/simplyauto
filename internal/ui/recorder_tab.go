@@ -38,6 +38,10 @@ type RecorderTab struct {
 func NewRecorderTab(app *app.App) *RecorderTab {
 	t := &RecorderTab{app: app}
 	t.build()
+
+	// Register callback so config is always applied before playback starts
+	app.OnPlaybackStart = t.applyPlaybackConfig
+
 	return t
 }
 
@@ -56,7 +60,6 @@ func (t *RecorderTab) build() {
 	t.recordButton.Importance = widget.HighImportance
 
 	t.playButton = widget.NewButton("PLAY (F10)", func() {
-		t.applyPlaybackConfig()
 		t.app.TogglePlayback()
 	})
 

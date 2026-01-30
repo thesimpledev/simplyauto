@@ -64,6 +64,8 @@ type App struct {
 
 	// OnAutoClickerStart is called before the autoclicker starts to apply UI config
 	OnAutoClickerStart func() error
+	// OnPlaybackStart is called before playback starts to apply UI config
+	OnPlaybackStart func()
 
 	mu sync.Mutex
 
@@ -308,6 +310,11 @@ func (a *App) TogglePlayback() {
 
 	if a.currentRecording == nil || len(a.currentRecording.Events) == 0 {
 		return
+	}
+
+	// Apply UI config before starting playback
+	if a.OnPlaybackStart != nil {
+		a.OnPlaybackStart()
 	}
 
 	a.sendEvent(StateEvent{
