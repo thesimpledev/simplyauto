@@ -62,6 +62,9 @@ type App struct {
 	PlaybackLoop  recorder.LoopMode
 	PlaybackCount int
 
+	// OnAutoClickerStart is called before the autoclicker starts to apply UI config
+	OnAutoClickerStart func() error
+
 	mu sync.Mutex
 
 	EventChan chan StateEvent
@@ -245,6 +248,14 @@ func (a *App) ToggleAutoClicker() {
 
 	if a.isMacroActive() {
 		return
+	}
+
+	// If starting (not currently running), apply config from UI first
+	if !a.AutoClicker.IsRunning() && a.OnAutoClickerStart != nil {
+		if err := a.OnAutoClickerStart(); err != nil {
+			a.Log.Printf("failed to apply autoclicker config: %v", err)
+			return
+		}
 	}
 
 	a.AutoClicker.Toggle()

@@ -136,31 +136,39 @@ func (t *RecorderTab) build() {
 	)
 }
 
-func (t *RecorderTab) applyPlaybackConfig() recorder.PlaybackConfig {
-	cfg := recorder.DefaultPlaybackConfig()
-
+func (t *RecorderTab) applyPlaybackConfig() {
+	var speed float64
 	switch t.speedSelect.Selected {
 	case "0.5x":
-		cfg.Speed = 0.5
+		speed = 0.5
 	case "1x":
-		cfg.Speed = 1.0
+		speed = 1.0
 	case "2x":
-		cfg.Speed = 2.0
+		speed = 2.0
 	case "4x":
-		cfg.Speed = 4.0
+		speed = 4.0
+	default:
+		speed = 1.0
 	}
+	t.app.SetPlaybackSpeed(speed)
 
+	var loopMode recorder.LoopMode
+	var loopCount int
 	switch t.loopSelect.Selected {
 	case "Once":
-		cfg.LoopMode = recorder.LoopOnce
+		loopMode = recorder.LoopOnce
+		loopCount = 1
 	case "Count":
-		cfg.LoopMode = recorder.LoopCount
-		cfg.LoopCount, _ = strconv.Atoi(t.loopEntry.Text)
+		loopMode = recorder.LoopCount
+		loopCount, _ = strconv.Atoi(t.loopEntry.Text)
+		if loopCount < 1 {
+			loopCount = 1
+		}
 	case "Continuous":
-		cfg.LoopMode = recorder.LoopContinuous
+		loopMode = recorder.LoopContinuous
+		loopCount = 1
 	}
-
-	return cfg
+	t.app.SetPlaybackLoop(loopMode, loopCount)
 }
 
 func (t *RecorderTab) UpdateRecordingState(recording bool, eventCount int) {

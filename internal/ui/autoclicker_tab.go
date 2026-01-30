@@ -40,6 +40,10 @@ type AutoClickerTab struct {
 func NewAutoClickerTab(app *app.App, window fyne.Window) *AutoClickerTab {
 	t := &AutoClickerTab{app: app, window: window}
 	t.build()
+
+	// Register callback so config is always applied before autoclicker starts
+	app.OnAutoClickerStart = t.applyConfig
+
 	return t
 }
 
@@ -154,10 +158,6 @@ func (t *AutoClickerTab) build() {
 	)
 
 	t.startButton = widget.NewButton("START (F6)", func() {
-		if err := t.applyConfig(); err != nil {
-			dialog.ShowError(err, t.window)
-			return
-		}
 		t.app.ToggleAutoClicker()
 	})
 	t.startButton.Importance = widget.HighImportance
@@ -229,7 +229,49 @@ func (t *AutoClickerTab) applyConfig() error {
 		cfg.FixedY, _ = strconv.Atoi(t.yEntry.Text)
 	}
 
-	return t.app.AutoClicker.SetConfig(cfg)
+	if err := t.app.AutoClicker.SetConfig(cfg); err != nil {
+		dialog.ShowError(err, t.window)
+		return err
+	}
+	return nil
+}
+
+func (t *AutoClickerTab) setFieldsEnabled(enabled bool) {
+	if enabled {
+		t.hoursEntry.Enable()
+		t.minsEntry.Enable()
+		t.secsEntry.Enable()
+		t.msEntry.Enable()
+		t.randomCheck.Enable()
+		if t.randomCheck.Checked {
+			t.randomEntry.Enable()
+		}
+		t.buttonSelect.Enable()
+		t.clickSelect.Enable()
+		t.repeatSelect.Enable()
+		if t.repeatSelect.Selected == "Count" {
+			t.repeatEntry.Enable()
+		}
+		t.positionSelect.Enable()
+		if t.positionSelect.Selected == "Fixed position" {
+			t.xEntry.Enable()
+			t.yEntry.Enable()
+		}
+	} else {
+		t.hoursEntry.Disable()
+		t.minsEntry.Disable()
+		t.secsEntry.Disable()
+		t.msEntry.Disable()
+		t.randomCheck.Disable()
+		t.randomEntry.Disable()
+		t.buttonSelect.Disable()
+		t.clickSelect.Disable()
+		t.repeatSelect.Disable()
+		t.repeatEntry.Disable()
+		t.positionSelect.Disable()
+		t.xEntry.Disable()
+		t.yEntry.Disable()
+	}
 }
 
 func (t *AutoClickerTab) UpdateState(running bool, clickCount int) {
@@ -241,4 +283,5 @@ func (t *AutoClickerTab) UpdateState(running bool, clickCount int) {
 		t.startButton.Importance = widget.HighImportance
 	}
 	t.clicksLabel.SetText(fmt.Sprintf("Clicks: %d", clickCount))
+	t.setFieldsEnabled(!running)
 }
