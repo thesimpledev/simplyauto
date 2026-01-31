@@ -10,6 +10,9 @@ import (
 	"simplyauto/internal/ui"
 )
 
+// Version is set via ldflags at build time
+var Version = "dev"
+
 func showMessageBox(title, message string, flags uint32) error {
 	titlePtr, err := windows.UTF16PtrFromString(title)
 	if err != nil {
