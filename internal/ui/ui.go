@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
+	"simplyauto/assets"
 	simplyapp "simplyauto/internal/app"
 	"simplyauto/internal/hooks"
 )
@@ -34,12 +35,14 @@ func New(simplyApp *simplyapp.App) (*UI, error) {
 	if fyneApp == nil {
 		return nil, fmt.Errorf("failed to create Fyne application")
 	}
+	fyneApp.SetIcon(assets.AppIcon())
 
 	window := fyneApp.NewWindow(AppTitle)
 	if window == nil {
 		return nil, fmt.Errorf("failed to create application window")
 	}
 	window.Resize(fyne.NewSize(AppWidth, AppHeight))
+	window.SetIcon(assets.AppIcon())
 
 	ui := &UI{
 		app:       fyneApp,
