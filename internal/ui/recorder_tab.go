@@ -2,19 +2,31 @@ package ui
 
 import (
 	"fmt"
+	"runtime"
 	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 
 	"simplyauto/internal/app"
 	"simplyauto/internal/recorder"
 	intstorage "simplyauto/internal/storage"
 )
+
+// uriToPath converts a Fyne URI path to a native file path.
+// On Windows, URI.Path() returns "/C:/path" which needs to be converted to "C:\path".
+func uriToPath(uri fyne.URI) string {
+	path := uri.Path()
+	if runtime.GOOS == "windows" && len(path) > 2 && path[0] == '/' && path[2] == ':' {
+		path = path[1:] // Remove leading slash: "/C:/path" -> "C:/path"
+		path = strings.ReplaceAll(path, "/", "\\")
+	}
+	return path
+}
 
 type RecorderTab struct {
 	app           *app.App
@@ -232,7 +244,7 @@ func (t *RecorderTab) openFile() {
 		}
 		defer reader.Close()
 
-		path := reader.URI().Path()
+		path := uriToPath(reader.URI())
 		if err := t.app.LoadRecording(path); err != nil {
 			dialog.ShowError(err, t.window)
 			return
@@ -245,7 +257,6 @@ func (t *RecorderTab) openFile() {
 		}
 	}, t.window)
 
-	fd.SetFilter(storage.NewExtensionFileFilter([]string{".simplyauto", ".json"}))
 	fd.Show()
 }
 
@@ -260,7 +271,7 @@ func (t *RecorderTab) saveFile() {
 		}
 		defer writer.Close()
 
-		path := writer.URI().Path()
+		path := uriToPath(writer.URI())
 		if err := t.app.SaveRecording(path); err != nil {
 			dialog.ShowError(err, t.window)
 			return
@@ -270,6 +281,5 @@ func (t *RecorderTab) saveFile() {
 	}, t.window)
 
 	fd.SetFileName("recording" + intstorage.FileExtension)
-	fd.SetFilter(storage.NewExtensionFileFilter([]string{".simplyauto"}))
 	fd.Show()
 }
