@@ -239,8 +239,12 @@ func (t *RecorderTab) openFile() {
 	}
 
 	fd := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
-		if err != nil || reader == nil {
+		if err != nil {
+			dialog.ShowError(err, t.window)
 			return
+		}
+		if reader == nil {
+			return // User cancelled
 		}
 		defer reader.Close()
 
@@ -266,8 +270,12 @@ func (t *RecorderTab) saveFile() {
 	}
 
 	fd := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
-		if err != nil || writer == nil {
+		if err != nil {
+			dialog.ShowError(err, t.window)
 			return
+		}
+		if writer == nil {
+			return // User cancelled
 		}
 		defer writer.Close()
 
