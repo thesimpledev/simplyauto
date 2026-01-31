@@ -13,28 +13,31 @@ import (
 
 	"simplyauto/internal/app"
 	"simplyauto/internal/autoclicker"
+	"simplyauto/internal/hooks"
 	"simplyauto/pkg/events"
 )
 
 type AutoClickerTab struct {
-	app            *app.App
-	window         fyne.Window
-	hoursEntry     *widget.Entry
-	minsEntry      *widget.Entry
-	secsEntry      *widget.Entry
-	msEntry        *widget.Entry
-	randomCheck    *widget.Check
-	randomEntry    *widget.Entry
-	buttonSelect   *widget.RadioGroup
-	clickSelect    *widget.RadioGroup
-	repeatSelect   *widget.RadioGroup
-	repeatEntry    *widget.Entry
-	positionSelect *widget.RadioGroup
-	xEntry         *widget.Entry
-	yEntry         *widget.Entry
-	startButton    *widget.Button
-	clicksLabel    *widget.Label
-	content        fyne.CanvasObject
+	app               *app.App
+	window            fyne.Window
+	hoursEntry        *widget.Entry
+	minsEntry         *widget.Entry
+	secsEntry         *widget.Entry
+	msEntry           *widget.Entry
+	randomCheck       *widget.Check
+	randomEntry       *widget.Entry
+	buttonSelect      *widget.RadioGroup
+	clickSelect       *widget.RadioGroup
+	repeatSelect      *widget.RadioGroup
+	repeatEntry       *widget.Entry
+	positionSelect    *widget.RadioGroup
+	xEntry            *widget.Entry
+	yEntry            *widget.Entry
+	setPositionButton *widget.Button
+	startButton       *widget.Button
+	clicksLabel       *widget.Label
+	content           fyne.CanvasObject
+	positionCapture   *hooks.InputCapture
 }
 
 func NewAutoClickerTab(app *app.App, window fyne.Window) *AutoClickerTab {
@@ -139,13 +142,20 @@ func (t *AutoClickerTab) build() {
 	t.yEntry.SetText("0")
 	t.yEntry.Disable()
 
+	t.setPositionButton = widget.NewButton("Set Position", func() {
+		t.startPositionCapture()
+	})
+	t.setPositionButton.Disable()
+
 	t.positionSelect = widget.NewRadioGroup([]string{"Current location", "Fixed position"}, func(s string) {
 		if s == "Fixed position" {
 			t.xEntry.Enable()
 			t.yEntry.Enable()
+			t.setPositionButton.Enable()
 		} else {
 			t.xEntry.Disable()
 			t.yEntry.Disable()
+			t.setPositionButton.Disable()
 		}
 	})
 	t.positionSelect.SetSelected("Current location")
@@ -153,7 +163,7 @@ func (t *AutoClickerTab) build() {
 	positionSection := container.NewVBox(
 		widget.NewLabel("Cursor Position"),
 		t.positionSelect,
-		container.NewHBox(widget.NewLabel("X:"), t.xEntry, widget.NewLabel("Y:"), t.yEntry),
+		container.NewHBox(widget.NewLabel("X:"), t.xEntry, widget.NewLabel("Y:"), t.yEntry, t.setPositionButton),
 		widget.NewSeparator(),
 	)
 
@@ -256,6 +266,7 @@ func (t *AutoClickerTab) setFieldsEnabled(enabled bool) {
 		if t.positionSelect.Selected == "Fixed position" {
 			t.xEntry.Enable()
 			t.yEntry.Enable()
+			t.setPositionButton.Enable()
 		}
 	} else {
 		t.hoursEntry.Disable()
@@ -271,6 +282,7 @@ func (t *AutoClickerTab) setFieldsEnabled(enabled bool) {
 		t.positionSelect.Disable()
 		t.xEntry.Disable()
 		t.yEntry.Disable()
+		t.setPositionButton.Disable()
 	}
 }
 
@@ -284,4 +296,42 @@ func (t *AutoClickerTab) UpdateState(running bool, clickCount int) {
 	}
 	t.clicksLabel.SetText(fmt.Sprintf("Clicks: %d", clickCount))
 	t.setFieldsEnabled(!running)
+}
+
+func (t *AutoClickerTab) startPositionCapture() {
+	// Stop any existing capture
+	if t.positionCapture != nil {
+		t.positionCapture.Stop()
+	}
+
+	t.setPositionButton.SetText("Click anywhere...")
+	t.setPositionButton.Disable()
+
+	t.positionCapture = hooks.NewInputCapture(hooks.CaptureOptions{
+		CaptureMouse:    true,
+		CaptureKeyboard: false,
+	})
+
+	err := t.positionCapture.Start(func(event events.InputEvent) {
+		// Only capture left mouse button down
+		if event.Type == events.EventMouseLeftDown {
+			// Update the position entries on the UI thread
+			t.xEntry.SetText(strconv.Itoa(event.X))
+			t.yEntry.SetText(strconv.Itoa(event.Y))
+
+			// Stop capturing
+			t.positionCapture.Stop()
+			t.positionCapture = nil
+
+			// Reset button text
+			t.setPositionButton.SetText("Set Position")
+			t.setPositionButton.Enable()
+		}
+	})
+
+	if err != nil {
+		t.setPositionButton.SetText("Set Position")
+		t.setPositionButton.Enable()
+		dialog.ShowError(err, t.window)
+	}
 }
