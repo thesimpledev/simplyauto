@@ -1,6 +1,7 @@
 # SimplyAuto Makefile
 
 APP_NAME := SimplyAuto
+APP_ID := com.simplyauto.app
 BINARY_NAME := simplyauto.exe
 BIN_DIR := bin
 ICON := assets/logo.png
@@ -26,7 +27,7 @@ help:
 # Install required tools
 setup:
 	@echo "Installing required tools..."
-	go install fyne.io/fyne/v2/cmd/fyne@latest
+	go install fyne.io/tools/cmd/fyne@latest
 	@echo ""
 	@echo "Make sure you also have GitHub CLI (gh) installed and authenticated:"
 	@echo "  https://cli.github.com/"
@@ -42,7 +43,7 @@ endif
 	@echo "=== Building $(APP_NAME) v$(VERSION) for Windows ==="
 	mkdir -p $(BIN_DIR)
 	cd cmd/simplyauto && \
-		fyne package -os windows -icon ../../$(ICON) -name $(APP_NAME) -appVersion $(VERSION) -release
+		fyne package -os windows -icon ../../$(ICON) -appID $(APP_ID) -name $(APP_NAME) -appVersion $(VERSION) -release
 	mv cmd/simplyauto/$(APP_NAME).exe $(BIN_DIR)/$(BINARY_NAME)
 	@echo "Built: $(BIN_DIR)/$(BINARY_NAME)"
 	@echo ""
