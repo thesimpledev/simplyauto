@@ -295,6 +295,12 @@ func (a *App) ToggleRecording() {
 }
 
 func (a *App) TogglePlayback() {
+	// Apply UI config before acquiring lock to avoid deadlock
+	// (callback calls SetPlaybackSpeed/SetPlaybackLoop which also lock)
+	if a.OnPlaybackStart != nil {
+		a.OnPlaybackStart()
+	}
+
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -310,11 +316,6 @@ func (a *App) TogglePlayback() {
 
 	if a.currentRecording == nil || len(a.currentRecording.Events) == 0 {
 		return
-	}
-
-	// Apply UI config before starting playback
-	if a.OnPlaybackStart != nil {
-		a.OnPlaybackStart()
 	}
 
 	a.sendEvent(StateEvent{
