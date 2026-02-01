@@ -11,7 +11,6 @@ GITHUB_REPO := $(shell git remote get-url origin | sed 's/.*github.com[:/]\(.*\)
 
 .PHONY: help setup build clean
 
-# Default target
 help:
 	@echo "SimplyAuto Build System"
 	@echo ""
@@ -23,8 +22,10 @@ help:
 	@echo "Example:"
 	@echo "  make setup"
 	@echo "  make build VERSION=1.0.0"
+	@echo ""
+	@echo "Stable download URL (always points to latest release):"
+	@echo "  https://github.com/$(GITHUB_REPO)/releases/latest/download/$(BINARY_NAME)"
 
-# Install required tools
 setup:
 	@echo "Installing required tools..."
 	go install fyne.io/tools/cmd/fyne@latest
@@ -35,7 +36,6 @@ setup:
 	@echo ""
 	@echo "Setup complete! Make sure ~/go/bin is in your PATH"
 
-# Build and release
 build:
 ifndef VERSION
 	$(error VERSION is required. Usage: make build VERSION=x.x.x)
@@ -48,31 +48,21 @@ endif
 	@echo "Built: $(BIN_DIR)/$(BINARY_NAME)"
 	@echo ""
 	@echo "=== Creating GitHub Release v$(VERSION) ==="
-	@if gh release view v$(VERSION) >/dev/null 2>&1; then \
+	@if gh release view v$(VERSION) --repo $(GITHUB_REPO) >/dev/null 2>&1; then \
 		echo "Release v$(VERSION) exists, updating..."; \
-		gh release upload v$(VERSION) $(BIN_DIR)/$(BINARY_NAME) --clobber; \
+		gh release upload v$(VERSION) $(BIN_DIR)/$(BINARY_NAME) --repo $(GITHUB_REPO) --clobber; \
 	else \
-		echo "Creating new release v$(VERSION)..."; \
+		echo "Creating release v$(VERSION)..."; \
 		gh release create v$(VERSION) $(BIN_DIR)/$(BINARY_NAME) \
+			--repo $(GITHUB_REPO) \
 			--title "$(APP_NAME) v$(VERSION)" \
 			--notes "## $(APP_NAME) v$(VERSION)"; \
 	fi
 	@echo ""
-	@echo "=== Updating 'latest' Release ==="
-	@if gh release view latest >/dev/null 2>&1; then \
-		echo "Updating latest release..."; \
-		gh release delete latest -y; \
-		git push origin :refs/tags/latest 2>/dev/null || true; \
-	fi
-	gh release create latest $(BIN_DIR)/$(BINARY_NAME) \
-		--title "$(APP_NAME) Latest (v$(VERSION))" \
-		--notes "Latest stable release. Current version: v$(VERSION)"
-	@echo ""
 	@echo "=== Done! ==="
-	@echo "Versioned: https://github.com/$(GITHUB_REPO)/releases/tag/v$(VERSION)"
-	@echo "Latest:    https://github.com/$(GITHUB_REPO)/releases/download/latest/$(BINARY_NAME)"
+	@echo "Release: https://github.com/$(GITHUB_REPO)/releases/tag/v$(VERSION)"
+	@echo "Latest:  https://github.com/$(GITHUB_REPO)/releases/latest/download/$(BINARY_NAME)"
 
-# Clean build artifacts
 clean:
 	@echo "Cleaning..."
 	rm -rf $(BIN_DIR)
