@@ -9,18 +9,20 @@ ICON := assets/logo.png
 VERSION ?=
 GITHUB_REPO := $(shell git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')
 
-.PHONY: help setup build clean
+.PHONY: help setup debug build clean
 
 help:
 	@echo "SimplyAuto Build System"
 	@echo ""
 	@echo "Commands:"
 	@echo "  make setup                - Install required tools (fyne, gh cli)"
+	@echo "  make debug                - Build locally for testing"
 	@echo "  make build VERSION=x.x.x  - Build and release to GitHub"
 	@echo "  make clean                - Remove build artifacts"
 	@echo ""
 	@echo "Example:"
 	@echo "  make setup"
+	@echo "  make debug"
 	@echo "  make build VERSION=1.0.0"
 	@echo ""
 	@echo "Stable download URL (always points to latest release):"
@@ -35,6 +37,14 @@ setup:
 	@echo "  gh auth login"
 	@echo ""
 	@echo "Setup complete! Make sure ~/go/bin is in your PATH"
+
+debug:
+	@echo "=== Building $(APP_NAME) (debug) for Windows ==="
+	mkdir -p $(BIN_DIR)
+	cd cmd/simplyauto && \
+		fyne package --os windows --icon ../../$(ICON) --app-id $(APP_ID) --name $(APP_NAME)
+	mv cmd/simplyauto/$(APP_NAME).exe $(BIN_DIR)/$(BINARY_NAME)
+	@echo "Built: $(BIN_DIR)/$(BINARY_NAME)"
 
 build:
 ifndef VERSION

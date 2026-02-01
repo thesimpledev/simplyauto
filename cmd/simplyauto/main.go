@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 
 	"golang.org/x/sys/windows"
@@ -27,6 +28,7 @@ func showMessageBox(title, message string, flags uint32) error {
 }
 
 func main() {
+	os.Setenv("FYNE_RENDER", "software")
 	runtime.LockOSThread()
 
 	simplyApp := app.New()
