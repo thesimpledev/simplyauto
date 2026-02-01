@@ -39,15 +39,6 @@ func DefaultPlaybackConfig() PlaybackConfig {
 	}
 }
 
-var vkToString map[uint16]string
-
-func init() {
-	vkToString = make(map[uint16]string)
-	for keyStr, keyCode := range input.Keycode {
-		vkToString[keyCode] = keyStr
-	}
-}
-
 type Player struct {
 	state       PlayerState
 	recording   *storage.Recording
@@ -271,13 +262,9 @@ func (p *Player) executeEvent(event events.InputEvent) {
 		}
 
 	case events.EventKeyDown:
-		if key := vkToString[event.KeyCode]; key != "" {
-			input.KeyDown(key)
-		}
+		input.KeyDownVK(event.KeyCode)
 
 	case events.EventKeyUp:
-		if key := vkToString[event.KeyCode]; key != "" {
-			input.KeyUp(key)
-		}
+		input.KeyUpVK(event.KeyCode)
 	}
 }

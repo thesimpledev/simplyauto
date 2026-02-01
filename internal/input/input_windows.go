@@ -9,9 +9,15 @@ import (
 )
 
 var (
-	user32         = syscall.NewLazyDLL("user32.dll")
+	user32           = syscall.NewLazyDLL("user32.dll")
 	procSetCursorPos = user32.NewProc("SetCursorPos")
 	procSendInput    = user32.NewProc("SendInput")
+	procMapVirtualKey = user32.NewProc("MapVirtualKeyW")
+)
+
+// MapVirtualKey mapping types
+const (
+	MAPVK_VK_TO_VSC = 0
 )
 
 // Input type constants
@@ -35,9 +41,10 @@ const (
 
 // Keyboard event flags
 const (
-	KEYEVENTF_KEYDOWN   = 0x0000
-	KEYEVENTF_KEYUP     = 0x0002
-	KEYEVENTF_SCANCODE  = 0x0008
+	KEYEVENTF_KEYDOWN     = 0x0000
+	KEYEVENTF_KEYUP       = 0x0002
+	KEYEVENTF_EXTENDEDKEY = 0x0001
+	KEYEVENTF_SCANCODE    = 0x0008
 )
 
 // MOUSEINPUT structure
@@ -255,18 +262,55 @@ func ScrollDir(amount int, direction string) {
 	procSendInput.Call(1, uintptr(unsafe.Pointer(&input)), unsafe.Sizeof(input))
 }
 
+// vkToScanCode converts a virtual key code to a hardware scan code.
+func vkToScanCode(vk uint16) uint16 {
+	ret, _, _ := procMapVirtualKey.Call(uintptr(vk), MAPVK_VK_TO_VSC)
+	return uint16(ret)
+}
+
+// isExtendedKey returns true if the virtual key code is an extended key.
+// Extended keys include arrows, insert, delete, home, end, page up/down, and right-side modifiers.
+func isExtendedKey(vk uint16) bool {
+	switch vk {
+	case 0x21, 0x22, 0x23, 0x24: // PageUp, PageDown, End, Home
+		return true
+	case 0x25, 0x26, 0x27, 0x28: // Arrow keys
+		return true
+	case 0x2D, 0x2E: // Insert, Delete
+		return true
+	case 0x5B, 0x5C: // Left/Right Win
+		return true
+	case 0xA1, 0xA3, 0xA5: // Right Shift, Right Ctrl, Right Alt
+		return true
+	case 0x6F: // Numpad Divide
+		return true
+	}
+	return false
+}
+
 // KeyDown presses a key.
 func KeyDown(key string) {
 	vk, ok := Keycode[key]
 	if !ok {
 		return
 	}
+	KeyDownVK(vk)
+}
+
+// KeyDownVK presses a key using its virtual key code.
+func KeyDownVK(vk uint16) {
+	scanCode := vkToScanCode(vk)
+	flags := uint32(KEYEVENTF_SCANCODE)
+	if isExtendedKey(vk) {
+		flags |= KEYEVENTF_EXTENDEDKEY
+	}
 
 	input := keyboardInputUnion{
 		dtype: INPUT_KEYBOARD,
 		ki: keybdInput{
-			wVk:     vk,
-			dwFlags: KEYEVENTF_KEYDOWN,
+			wVk:     0, // Set to 0 when using scan codes
+			wScan:   scanCode,
+			dwFlags: flags,
 		},
 	}
 
@@ -279,12 +323,23 @@ func KeyUp(key string) {
 	if !ok {
 		return
 	}
+	KeyUpVK(vk)
+}
+
+// KeyUpVK releases a key using its virtual key code.
+func KeyUpVK(vk uint16) {
+	scanCode := vkToScanCode(vk)
+	flags := uint32(KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP)
+	if isExtendedKey(vk) {
+		flags |= KEYEVENTF_EXTENDEDKEY
+	}
 
 	input := keyboardInputUnion{
 		dtype: INPUT_KEYBOARD,
 		ki: keybdInput{
-			wVk:     vk,
-			dwFlags: KEYEVENTF_KEYUP,
+			wVk:     0, // Set to 0 when using scan codes
+			wScan:   scanCode,
+			dwFlags: flags,
 		},
 	}
 
