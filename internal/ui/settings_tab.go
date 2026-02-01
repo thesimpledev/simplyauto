@@ -7,6 +7,7 @@ import (
 
 	"simplyauto/internal/app"
 	"simplyauto/internal/hooks"
+	"simplyauto/internal/settings"
 )
 
 type SettingsTab struct {
@@ -100,7 +101,10 @@ func (t *SettingsTab) build() {
 
 	t.alwaysOnTopCheck = widget.NewCheck("Always on top", func(checked bool) {
 		SetWindowTopmost(AppTitle, checked)
+		settings.SaveAlwaysOnTop(checked)
 	})
+	// Load saved setting
+	t.alwaysOnTopCheck.SetChecked(t.simplyApp.Settings.AlwaysOnTop)
 
 	windowSection := container.NewVBox(
 		widget.NewLabel("Window Options"),

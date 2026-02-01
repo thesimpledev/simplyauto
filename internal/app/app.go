@@ -4,7 +4,6 @@ package app
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"simplyauto/internal/autoclicker"
 	"simplyauto/internal/hooks"
 	"simplyauto/internal/recorder"
+	"simplyauto/internal/settings"
 	"simplyauto/internal/storage"
 )
 
@@ -46,12 +46,12 @@ type StateEvent struct {
 
 type App struct {
 	Log         *log.Logger
-	LogError    error
 	AutoClicker *autoclicker.AutoClicker
 	Recorder    *recorder.Recorder
 	Player      *recorder.Player
 	Storage     *storage.JSONStorage
 	Hotkeys     *hooks.HotkeyManager
+	Settings    settings.Settings
 
 	hotkeyBindings map[HotkeyAction]*HotkeyBinding
 
@@ -71,32 +71,38 @@ type App struct {
 
 	EventChan chan StateEvent
 
-	logFile *os.File
+	// Lazy logger - file only created on first error
+	logMu      sync.Mutex
+	logFile    *os.File
+	logCreated bool
 }
 
 func New() *App {
-	logger, logFile, logErr := setupLogger()
+	// Load settings from registry
+	s := settings.Load()
 
 	a := &App{
-		Log:         logger,
-		LogError:    logErr,
+		Log:         log.New(&lazyLogWriter{}, "", log.Ldate|log.Ltime|log.Lshortfile),
 		AutoClicker: autoclicker.New(),
 		Recorder:    recorder.NewRecorder(recorder.DefaultRecorderOptions()),
 		Player:      recorder.NewPlayer(),
 		Storage:     storage.NewJSONStorage(),
 		Hotkeys:     hooks.NewHotkeyManager(),
+		Settings:    s,
 		hotkeyBindings: map[HotkeyAction]*HotkeyBinding{
-			HotkeyAutoClicker: {Action: HotkeyAutoClicker, Key: hooks.KeyF6},
-			HotkeyRecord:      {Action: HotkeyRecord, Key: hooks.KeyF9},
-			HotkeyPlayback:    {Action: HotkeyPlayback, Key: hooks.KeyF10},
-			HotkeyStop:        {Action: HotkeyStop, Key: hooks.KeyF11},
+			HotkeyAutoClicker: {Action: HotkeyAutoClicker, Key: hooks.Key(s.HotkeyAutoClicker)},
+			HotkeyRecord:      {Action: HotkeyRecord, Key: hooks.Key(s.HotkeyRecord)},
+			HotkeyPlayback:    {Action: HotkeyPlayback, Key: hooks.Key(s.HotkeyPlayback)},
+			HotkeyStop:        {Action: HotkeyStop, Key: hooks.Key(s.HotkeyStop)},
 		},
 		PlaybackSpeed: 1.0,
 		PlaybackLoop:  recorder.LoopOnce,
 		PlaybackCount: 1,
 		EventChan:     make(chan StateEvent, 32),
-		logFile:       logFile,
 	}
+
+	// Set the app reference for lazy logging
+	a.Log.SetOutput(&lazyLogWriter{app: a})
 
 	a.Player.OnComplete = func() {
 		a.sendEvent(StateEvent{Type: "player", Running: false})
@@ -130,19 +136,41 @@ func (a *App) stopRecorder() error {
 	return nil
 }
 
-func setupLogger() (*log.Logger, *os.File, error) {
-	exe, err := os.Executable()
-	if err != nil {
-		return log.New(io.Discard, "", 0), nil, err
+// lazyLogWriter creates the log file only when the first error is written.
+type lazyLogWriter struct {
+	app *App
+}
+
+func (w *lazyLogWriter) Write(p []byte) (n int, err error) {
+	if w.app == nil {
+		return len(p), nil
 	}
 
-	logPath := filepath.Join(filepath.Dir(exe), "simplyauto_errors.log")
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return log.New(io.Discard, "", 0), nil, err
+	w.app.logMu.Lock()
+	defer w.app.logMu.Unlock()
+
+	// Create log file on first write
+	if !w.app.logCreated {
+		exe, err := os.Executable()
+		if err != nil {
+			return len(p), nil // Silently discard if we can't get executable path
+		}
+
+		logPath := filepath.Join(filepath.Dir(exe), "simplyauto_errors.log")
+		f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return len(p), nil // Silently discard if we can't create log file
+		}
+
+		w.app.logFile = f
+		w.app.logCreated = true
 	}
 
-	return log.New(f, "", log.Ldate|log.Ltime|log.Lshortfile), f, nil
+	if w.app.logFile != nil {
+		return w.app.logFile.Write(p)
+	}
+
+	return len(p), nil
 }
 
 func (a *App) RegisterDefaultHotkeys() error {
@@ -222,7 +250,23 @@ func (a *App) RebindHotkey(action HotkeyAction, newKey hooks.Key) error {
 	}
 
 	// Register new hotkey
-	return a.registerHotkey(action, newKey)
+	if err := a.registerHotkey(action, newKey); err != nil {
+		return err
+	}
+
+	// Save to registry
+	registryName := "Hotkey" + string(action)
+	registryName = map[HotkeyAction]string{
+		HotkeyAutoClicker: "HotkeyAutoClicker",
+		HotkeyRecord:      "HotkeyRecord",
+		HotkeyPlayback:    "HotkeyPlayback",
+		HotkeyStop:        "HotkeyStop",
+	}[action]
+	if registryName != "" {
+		settings.SaveHotkey(registryName, uint16(newKey))
+	}
+
+	return nil
 }
 
 func (a *App) GetHotkeyBinding(action HotkeyAction) HotkeyBinding {

@@ -34,12 +34,6 @@ func main() {
 	simplyApp := app.New()
 	defer simplyApp.Cleanup()
 
-	if simplyApp.LogError != nil {
-		showMessageBox("SimplyAuto - Warning",
-			fmt.Sprintf("Could not create error log file: %v\n\nThe application does not have write privileges to its directory.", simplyApp.LogError),
-			windows.MB_OK|windows.MB_ICONWARNING)
-	}
-
 	if err := simplyApp.RegisterDefaultHotkeys(); err != nil {
 		simplyApp.Log.Printf("failed to register hotkeys: %v", err)
 		if mbErr := showMessageBox("SimplyAuto - Hotkey Warning",
@@ -59,5 +53,11 @@ func main() {
 		}
 		return
 	}
+
+	// Apply saved always-on-top setting
+	if simplyApp.Settings.AlwaysOnTop {
+		ui.SetWindowTopmost(ui.AppTitle, true)
+	}
+
 	appUI.Run()
 }
