@@ -206,6 +206,11 @@ func (t *AutoClickerTab) build() {
 }
 
 func (t *AutoClickerTab) saveSettings() {
+	// Don't save during initialization when widgets aren't fully created
+	if t.repeatEntry == nil || t.buttonSelect == nil || t.clickSelect == nil {
+		return
+	}
+
 	hours, _ := strconv.Atoi(t.hoursEntry.Text)
 	mins, _ := strconv.Atoi(t.minsEntry.Text)
 	secs, _ := strconv.Atoi(t.secsEntry.Text)

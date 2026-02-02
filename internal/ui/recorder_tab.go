@@ -194,6 +194,11 @@ func (t *RecorderTab) applyPlaybackConfig() {
 }
 
 func (t *RecorderTab) saveSettings() {
+	// Don't save during initialization when widgets aren't fully created
+	if t.loopEntry == nil || t.speedSelect == nil || t.loopSelect == nil {
+		return
+	}
+
 	loopCount, _ := strconv.Atoi(t.loopEntry.Text)
 	if loopCount < 1 {
 		loopCount = 1
