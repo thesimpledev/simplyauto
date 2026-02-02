@@ -14,6 +14,7 @@ import (
 	"simplyauto/internal/app"
 	"simplyauto/internal/autoclicker"
 	"simplyauto/internal/hooks"
+	"simplyauto/internal/settings"
 	"simplyauto/pkg/events"
 )
 
@@ -55,21 +56,27 @@ func (t *AutoClickerTab) Content() fyne.CanvasObject {
 }
 
 func (t *AutoClickerTab) build() {
+	s := t.app.Settings
+
 	t.hoursEntry = widget.NewEntry()
-	t.hoursEntry.SetText("0")
+	t.hoursEntry.SetText(strconv.Itoa(s.ClickIntervalHours))
 	t.hoursEntry.SetPlaceHolder("0")
+	t.hoursEntry.OnChanged = func(_ string) { t.saveSettings() }
 
 	t.minsEntry = widget.NewEntry()
-	t.minsEntry.SetText("0")
+	t.minsEntry.SetText(strconv.Itoa(s.ClickIntervalMins))
 	t.minsEntry.SetPlaceHolder("0")
+	t.minsEntry.OnChanged = func(_ string) { t.saveSettings() }
 
 	t.secsEntry = widget.NewEntry()
-	t.secsEntry.SetText("0")
+	t.secsEntry.SetText(strconv.Itoa(s.ClickIntervalSecs))
 	t.secsEntry.SetPlaceHolder("0")
+	t.secsEntry.OnChanged = func(_ string) { t.saveSettings() }
 
 	t.msEntry = widget.NewEntry()
-	t.msEntry.SetText("100")
+	t.msEntry.SetText(strconv.Itoa(s.ClickIntervalMs))
 	t.msEntry.SetPlaceHolder("100")
+	t.msEntry.OnChanged = func(_ string) { t.saveSettings() }
 
 	intervalRow := container.NewHBox(
 		container.NewVBox(widget.NewLabel("Hours"), t.hoursEntry),
@@ -79,8 +86,11 @@ func (t *AutoClickerTab) build() {
 	)
 
 	t.randomEntry = widget.NewEntry()
-	t.randomEntry.SetText("0")
-	t.randomEntry.Disable()
+	t.randomEntry.SetText(strconv.Itoa(s.ClickRandomOffsetMs))
+	t.randomEntry.OnChanged = func(_ string) { t.saveSettings() }
+	if !s.ClickRandomEnabled {
+		t.randomEntry.Disable()
+	}
 
 	t.randomCheck = widget.NewCheck("Random offset +/-", func(checked bool) {
 		if checked {
@@ -88,7 +98,9 @@ func (t *AutoClickerTab) build() {
 		} else {
 			t.randomEntry.Disable()
 		}
+		t.saveSettings()
 	})
+	t.randomCheck.SetChecked(s.ClickRandomEnabled)
 
 	randomRow := container.NewHBox(t.randomCheck, t.randomEntry, widget.NewLabel("ms"))
 
@@ -99,12 +111,12 @@ func (t *AutoClickerTab) build() {
 		widget.NewSeparator(),
 	)
 
-	t.buttonSelect = widget.NewRadioGroup([]string{"Left", "Right", "Middle"}, nil)
-	t.buttonSelect.SetSelected("Left")
+	t.buttonSelect = widget.NewRadioGroup([]string{"Left", "Right", "Middle"}, func(_ string) { t.saveSettings() })
+	t.buttonSelect.SetSelected(s.ClickButton)
 	t.buttonSelect.Horizontal = true
 
-	t.clickSelect = widget.NewRadioGroup([]string{"Single", "Double"}, nil)
-	t.clickSelect.SetSelected("Single")
+	t.clickSelect = widget.NewRadioGroup([]string{"Single", "Double"}, func(_ string) { t.saveSettings() })
+	t.clickSelect.SetSelected(s.ClickType)
 	t.clickSelect.Horizontal = true
 
 	clickSection := container.NewVBox(
@@ -115,17 +127,21 @@ func (t *AutoClickerTab) build() {
 	)
 
 	t.repeatEntry = widget.NewEntry()
-	t.repeatEntry.SetText("1")
-	t.repeatEntry.Disable()
+	t.repeatEntry.SetText(strconv.Itoa(s.ClickRepeatCount))
+	t.repeatEntry.OnChanged = func(_ string) { t.saveSettings() }
+	if s.ClickRepeatMode != "Count" {
+		t.repeatEntry.Disable()
+	}
 
-	t.repeatSelect = widget.NewRadioGroup([]string{"Until stopped", "Count"}, func(s string) {
-		if s == "Count" {
+	t.repeatSelect = widget.NewRadioGroup([]string{"Until stopped", "Count"}, func(sel string) {
+		if sel == "Count" {
 			t.repeatEntry.Enable()
 		} else {
 			t.repeatEntry.Disable()
 		}
+		t.saveSettings()
 	})
-	t.repeatSelect.SetSelected("Until stopped")
+	t.repeatSelect.SetSelected(s.ClickRepeatMode)
 
 	repeatSection := container.NewVBox(
 		widget.NewLabel("Click Repeat"),
@@ -147,8 +163,8 @@ func (t *AutoClickerTab) build() {
 	})
 	t.setPositionButton.Disable()
 
-	t.positionSelect = widget.NewRadioGroup([]string{"Current location", "Fixed position"}, func(s string) {
-		if s == "Fixed position" {
+	t.positionSelect = widget.NewRadioGroup([]string{"Current location", "Fixed position"}, func(sel string) {
+		if sel == "Fixed position" {
 			t.xEntry.Enable()
 			t.yEntry.Enable()
 			t.setPositionButton.Enable()
@@ -186,6 +202,22 @@ func (t *AutoClickerTab) build() {
 		repeatSection,
 		positionSection,
 		controlSection,
+	)
+}
+
+func (t *AutoClickerTab) saveSettings() {
+	hours, _ := strconv.Atoi(t.hoursEntry.Text)
+	mins, _ := strconv.Atoi(t.minsEntry.Text)
+	secs, _ := strconv.Atoi(t.secsEntry.Text)
+	ms, _ := strconv.Atoi(t.msEntry.Text)
+	randomOffset, _ := strconv.Atoi(t.randomEntry.Text)
+	repeatCount, _ := strconv.Atoi(t.repeatEntry.Text)
+
+	settings.SaveAutoClicker(
+		hours, mins, secs, ms,
+		t.randomCheck.Checked, randomOffset,
+		t.buttonSelect.Selected, t.clickSelect.Selected,
+		t.repeatSelect.Selected, repeatCount,
 	)
 }
 

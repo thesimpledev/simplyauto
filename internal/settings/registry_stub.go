@@ -21,3 +21,14 @@ func SaveHotkey(name string, vk uint16) error {
 func SaveAlwaysOnTop(enabled bool) error {
 	return nil
 }
+
+// SaveAutoClicker is a no-op on non-Windows platforms.
+func SaveAutoClicker(hours, mins, secs, ms int, randomEnabled bool, randomOffset int,
+	button, clickType, repeatMode string, repeatCount int) error {
+	return nil
+}
+
+// SavePlayback is a no-op on non-Windows platforms.
+func SavePlayback(speed, loopMode string, loopCount int) error {
+	return nil
+}

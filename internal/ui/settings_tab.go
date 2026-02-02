@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"net/url"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -11,7 +13,8 @@ import (
 )
 
 type SettingsTab struct {
-	simplyApp              *app.App
+	simplyApp               *app.App
+	version                 string
 	autoClickerHotkeySelect *widget.Select
 	recordHotkeySelect      *widget.Select
 	playHotkeySelect        *widget.Select
@@ -21,9 +24,10 @@ type SettingsTab struct {
 	content                 fyne.CanvasObject
 }
 
-func NewSettingsTab(simplyApp *app.App) *SettingsTab {
+func NewSettingsTab(simplyApp *app.App, version string) *SettingsTab {
 	t := &SettingsTab{
 		simplyApp:    simplyApp,
+		version:      version,
 		statusLabels: make(map[app.HotkeyAction]*widget.Label),
 	}
 	t.build()
@@ -112,10 +116,15 @@ func (t *SettingsTab) build() {
 		widget.NewSeparator(),
 	)
 
+	simplyAutoURL, _ := url.Parse("https://simplyauto.dev")
+	theSimpleDevURL, _ := url.Parse("https://thesimpledev.com")
+
 	aboutSection := container.NewVBox(
 		widget.NewLabel("About"),
-		widget.NewLabel("SimplyAuto v1.0.0"),
+		widget.NewLabel("SimplyAuto v"+t.version),
 		widget.NewLabel("Windows Auto Clicker & Macro Recorder"),
+		widget.NewHyperlink("simplyauto.dev", simplyAutoURL),
+		widget.NewHyperlink("thesimpledev.com", theSimpleDevURL),
 	)
 
 	t.content = container.NewVBox(

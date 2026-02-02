@@ -43,7 +43,7 @@ func main() {
 		}
 	}
 
-	appUI, err := ui.New(simplyApp)
+	appUI, err := ui.New(simplyApp, Version)
 	if err != nil {
 		simplyApp.Log.Printf("failed to initialize UI: %v", err)
 		if mbErr := showMessageBox("SimplyAuto - Error",
@@ -52,11 +52,6 @@ func main() {
 			simplyApp.Log.Printf("failed to show message box: %v", mbErr)
 		}
 		return
-	}
-
-	// Apply saved always-on-top setting
-	if simplyApp.Settings.AlwaysOnTop {
-		ui.SetWindowTopmost(ui.AppTitle, true)
 	}
 
 	appUI.Run()

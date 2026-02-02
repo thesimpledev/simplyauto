@@ -14,6 +14,7 @@ import (
 
 	"simplyauto/internal/app"
 	"simplyauto/internal/recorder"
+	"simplyauto/internal/settings"
 	intstorage "simplyauto/internal/storage"
 )
 
@@ -66,6 +67,8 @@ func (t *RecorderTab) Content() fyne.CanvasObject {
 }
 
 func (t *RecorderTab) build() {
+	s := t.app.Settings
+
 	t.recordButton = widget.NewButton("RECORD (F9)", func() {
 		t.app.ToggleRecording()
 	})
@@ -88,21 +91,25 @@ func (t *RecorderTab) build() {
 		widget.NewSeparator(),
 	)
 
-	t.speedSelect = widget.NewSelect([]string{"0.5x", "1x", "2x", "4x"}, nil)
-	t.speedSelect.SetSelected("1x")
+	t.speedSelect = widget.NewSelect([]string{"0.5x", "1x", "2x", "4x"}, func(_ string) { t.saveSettings() })
+	t.speedSelect.SetSelected(s.PlaybackSpeed)
 
 	t.loopEntry = widget.NewEntry()
-	t.loopEntry.SetText("1")
-	t.loopEntry.Disable()
+	t.loopEntry.SetText(strconv.Itoa(s.PlaybackLoopCount))
+	t.loopEntry.OnChanged = func(_ string) { t.saveSettings() }
+	if s.PlaybackLoopMode != "Count" {
+		t.loopEntry.Disable()
+	}
 
-	t.loopSelect = widget.NewRadioGroup([]string{"Once", "Count", "Continuous"}, func(s string) {
-		if s == "Count" {
+	t.loopSelect = widget.NewRadioGroup([]string{"Once", "Count", "Continuous"}, func(sel string) {
+		if sel == "Count" {
 			t.loopEntry.Enable()
 		} else {
 			t.loopEntry.Disable()
 		}
+		t.saveSettings()
 	})
-	t.loopSelect.SetSelected("Once")
+	t.loopSelect.SetSelected(s.PlaybackLoopMode)
 
 	playbackSection := container.NewVBox(
 		widget.NewLabel("Playback Options"),
@@ -184,6 +191,14 @@ func (t *RecorderTab) applyPlaybackConfig() {
 		loopCount = 1
 	}
 	t.app.SetPlaybackLoop(loopMode, loopCount)
+}
+
+func (t *RecorderTab) saveSettings() {
+	loopCount, _ := strconv.Atoi(t.loopEntry.Text)
+	if loopCount < 1 {
+		loopCount = 1
+	}
+	settings.SavePlayback(t.speedSelect.Selected, t.loopSelect.Selected, loopCount)
 }
 
 func (t *RecorderTab) UpdateRecordingState(recording bool, eventCount int) {

@@ -28,9 +28,10 @@ type UI struct {
 	recorderTab    *RecorderTab
 	settingsTab    *SettingsTab
 	statusLabel    *widget.Label
+	version        string
 }
 
-func New(simplyApp *simplyapp.App) (*UI, error) {
+func New(simplyApp *simplyapp.App, version string) (*UI, error) {
 	fyneApp := app.New()
 	if fyneApp == nil {
 		return nil, fmt.Errorf("failed to create Fyne application")
@@ -48,6 +49,7 @@ func New(simplyApp *simplyapp.App) (*UI, error) {
 		app:       fyneApp,
 		window:    window,
 		simplyApp: simplyApp,
+		version:   version,
 	}
 
 	window.SetOnClosed(func() {
@@ -64,7 +66,7 @@ func (u *UI) setupUI() {
 	u.autoClickerTab = NewAutoClickerTab(u.simplyApp, u.window)
 	u.recorderTab = NewRecorderTab(u.simplyApp)
 	u.recorderTab.SetWindow(u.window)
-	u.settingsTab = NewSettingsTab(u.simplyApp)
+	u.settingsTab = NewSettingsTab(u.simplyApp, u.version)
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Auto Clicker", u.autoClickerTab.Content()),
@@ -132,6 +134,13 @@ func (u *UI) updateStatus(status string) {
 }
 
 func (u *UI) Run() {
+	// Apply always-on-top after window is shown
+	if u.simplyApp.Settings.AlwaysOnTop {
+		go func() {
+			// Small delay to ensure window is visible
+			SetWindowTopmost(AppTitle, true)
+		}()
+	}
 	u.window.ShowAndRun()
 }
 
