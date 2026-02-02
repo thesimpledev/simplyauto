@@ -53,8 +53,7 @@ endif
 	@echo "=== Building $(APP_NAME) v$(VERSION) for Windows ==="
 	mkdir -p $(BIN_DIR)
 	cd cmd/simplyauto && \
-		fyne package --os windows --icon ../../$(ICON) --app-id $(APP_ID) --name $(APP_NAME) --app-version $(VERSION) --release && \
-		go build -ldflags="-H windowsgui -X main.Version=$(VERSION)" -o $(APP_NAME).exe .
+		fyne package --os windows --icon ../../$(ICON) --app-id $(APP_ID) --name $(APP_NAME) --app-version $(VERSION) --release --ldflags "-X main.Version=$(VERSION)"
 	mv cmd/simplyauto/$(APP_NAME).exe $(BIN_DIR)/$(BINARY_NAME)
 	@echo "Built: $(BIN_DIR)/$(BINARY_NAME)"
 	@echo ""
