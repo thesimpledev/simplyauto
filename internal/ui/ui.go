@@ -3,6 +3,7 @@ package ui
 
 import (
 	"fmt"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -137,7 +138,7 @@ func (u *UI) Run() {
 	// Apply always-on-top after window is shown
 	if u.simplyApp.Settings.AlwaysOnTop {
 		go func() {
-			// Small delay to ensure window is visible
+			time.Sleep(100 * time.Millisecond)
 			SetWindowTopmost(AppTitle, true)
 		}()
 	}

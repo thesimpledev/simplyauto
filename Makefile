@@ -40,9 +40,10 @@ setup:
 
 debug:
 	@echo "=== Building $(APP_NAME) (debug) for Windows ==="
+	@echo "Note: Console window will show for debugging output"
 	mkdir -p $(BIN_DIR)
 	cd cmd/simplyauto && \
-		fyne package --os windows --icon ../../$(ICON) --app-id $(APP_ID) --name $(APP_NAME)
+		go build -o $(APP_NAME).exe .
 	mv cmd/simplyauto/$(APP_NAME).exe $(BIN_DIR)/$(BINARY_NAME)
 	@echo "Built: $(BIN_DIR)/$(BINARY_NAME)"
 
