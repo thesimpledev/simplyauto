@@ -9,20 +9,22 @@ ICON := assets/logo.png
 VERSION ?=
 GITHUB_REPO := $(shell git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')
 
-.PHONY: help setup debug build clean
+.PHONY: help setup debug build-debug build clean
 
 help:
 	@echo "SimplyAuto Build System"
 	@echo ""
 	@echo "Commands:"
 	@echo "  make setup                - Install required tools (fyne, gh cli)"
-	@echo "  make debug                - Build locally for testing"
+	@echo "  make debug                - Quick build with console output for debugging"
+	@echo "  make build-debug          - Production-like build for testing (no console)"
 	@echo "  make build VERSION=x.x.x  - Build and release to GitHub"
 	@echo "  make clean                - Remove build artifacts"
 	@echo ""
 	@echo "Example:"
 	@echo "  make setup"
 	@echo "  make debug"
+	@echo "  make build-debug"
 	@echo "  make build VERSION=1.0.0"
 	@echo ""
 	@echo "Stable download URL (always points to latest release):"
@@ -47,6 +49,14 @@ debug:
 	mv cmd/simplyauto/$(APP_NAME).exe $(BIN_DIR)/$(BINARY_NAME)
 	@echo "Built: $(BIN_DIR)/$(BINARY_NAME)"
 
+build-debug:
+	@echo "=== Building $(APP_NAME) (production-like) for Windows ==="
+	mkdir -p $(BIN_DIR)
+	cd cmd/simplyauto && \
+		fyne package --os windows --icon ../../$(ICON) --app-id $(APP_ID) --name $(APP_NAME)
+	mv cmd/simplyauto/$(APP_NAME).exe $(BIN_DIR)/$(BINARY_NAME)
+	@echo "Built: $(BIN_DIR)/$(BINARY_NAME)"
+
 build:
 ifndef VERSION
 	$(error VERSION is required. Usage: make build VERSION=x.x.x)
@@ -54,7 +64,8 @@ endif
 	@echo "=== Building $(APP_NAME) v$(VERSION) for Windows ==="
 	mkdir -p $(BIN_DIR)
 	cd cmd/simplyauto && \
-		fyne package --os windows --icon ../../$(ICON) --app-id $(APP_ID) --name $(APP_NAME) --app-version $(VERSION) --release --ldflags "-X main.Version=$(VERSION)"
+		fyne package --os windows --icon ../../$(ICON) --app-id $(APP_ID) --name $(APP_NAME) --app-version $(VERSION) --release && \
+		go build -ldflags "-H windowsgui -X main.Version=$(VERSION)" -o $(APP_NAME).exe .
 	mv cmd/simplyauto/$(APP_NAME).exe $(BIN_DIR)/$(BINARY_NAME)
 	@echo "Built: $(BIN_DIR)/$(BINARY_NAME)"
 	@echo ""
