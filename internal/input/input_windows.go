@@ -9,15 +9,23 @@ import (
 )
 
 var (
-	user32           = syscall.NewLazyDLL("user32.dll")
-	procSetCursorPos = user32.NewProc("SetCursorPos")
-	procSendInput    = user32.NewProc("SendInput")
-	procMapVirtualKey = user32.NewProc("MapVirtualKeyW")
+	user32                = syscall.NewLazyDLL("user32.dll")
+	procSendInput         = user32.NewProc("SendInput")
+	procMapVirtualKey     = user32.NewProc("MapVirtualKeyW")
+	procGetSystemMetrics  = user32.NewProc("GetSystemMetrics")
 )
 
 // MapVirtualKey mapping types
 const (
 	MAPVK_VK_TO_VSC = 0
+)
+
+// GetSystemMetrics indices for the virtual screen
+const (
+	SM_XVIRTUALSCREEN  = 76
+	SM_YVIRTUALSCREEN  = 77
+	SM_CXVIRTUALSCREEN = 78
+	SM_CYVIRTUALSCREEN = 79
 )
 
 // Input type constants
@@ -36,6 +44,7 @@ const (
 	MOUSEEVENTF_MIDDLEDOWN = 0x0020
 	MOUSEEVENTF_MIDDLEUP   = 0x0040
 	MOUSEEVENTF_WHEEL      = 0x0800
+	MOUSEEVENTF_VIRTUALDESK = 0x4000
 	MOUSEEVENTF_ABSOLUTE   = 0x8000
 )
 
@@ -190,9 +199,43 @@ var Keycode = map[string]uint16{
 	"quote":        0xDE,
 }
 
-// Move moves the mouse cursor to the specified position.
+// getSystemMetric returns a single GetSystemMetrics value as a signed int.
+func getSystemMetric(index int) int {
+	ret, _, _ := procGetSystemMetrics.Call(uintptr(index))
+	return int(int32(ret))
+}
+
+// pixelToAbsolute converts pixel coordinates to the 0..65535 absolute coordinate
+// space across the virtual desktop, used by SendInput with MOUSEEVENTF_ABSOLUTE
+// | MOUSEEVENTF_VIRTUALDESK.
+func pixelToAbsolute(x, y int) (int32, int32) {
+	vx := getSystemMetric(SM_XVIRTUALSCREEN)
+	vy := getSystemMetric(SM_YVIRTUALSCREEN)
+	vw := getSystemMetric(SM_CXVIRTUALSCREEN)
+	vh := getSystemMetric(SM_CYVIRTUALSCREEN)
+
+	if vw <= 0 || vh <= 0 {
+		return 0, 0
+	}
+
+	dx := int32(((x - vx) * 65535) / vw)
+	dy := int32(((y - vy) * 65535) / vh)
+	return dx, dy
+}
+
+// Move moves the mouse cursor to the specified position via SendInput so the
+// motion is visible to applications using Raw Input (e.g. Roblox).
 func Move(x, y int) {
-	procSetCursorPos.Call(uintptr(x), uintptr(y))
+	dx, dy := pixelToAbsolute(x, y)
+	in := inputUnion{
+		dtype: INPUT_MOUSE,
+		mi: mouseInput{
+			dx:      dx,
+			dy:      dy,
+			dwFlags: MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK,
+		},
+	}
+	procSendInput.Call(1, uintptr(unsafe.Pointer(&in)), unsafe.Sizeof(in))
 }
 
 // Click performs a mouse click at the current position.
