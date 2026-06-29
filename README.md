@@ -40,7 +40,22 @@ Note: Auto-clicker and macro recorder are mutually exclusive. You can use one or
 
 ## Building
 
-The application is built for Windows using GitHub Actions. Clone the repository and push to trigger a build, or run locally on Windows:
+SimplyAuto is a Windows GUI application built locally with the `Makefile` and released to GitHub Releases. There is no CI, so pushing to the repository does not produce a build.
+
+Prerequisites:
+
+- Go 1.24 or later
+- A C compiler, because Fyne uses cgo — build on Windows, or cross-compile with a Windows toolchain such as mingw-w64
+- The Fyne packaging tool, installed with `make setup`
+- GitHub CLI (`gh`), authenticated, to publish releases
+
+Build commands:
+
+- `make debug` — quick build with a console window for debugging output
+- `make build-debug` — production-like build, no console window
+- `make build VERSION=x.x.x` — build and publish a versioned release to GitHub
+
+Or build the binary directly:
 
 ```
 go build -ldflags="-H windowsgui" -o simplyauto.exe ./cmd/simplyauto
@@ -49,7 +64,6 @@ go build -ldflags="-H windowsgui" -o simplyauto.exe ./cmd/simplyauto
 ## Requirements
 
 - Windows 10 or later
-- Go 1.22 or later (for building)
 
 ## License
 
