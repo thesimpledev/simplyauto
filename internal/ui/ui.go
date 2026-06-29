@@ -26,6 +26,7 @@ type UI struct {
 	window         fyne.Window
 	simplyApp      *simplyapp.App
 	autoClickerTab *AutoClickerTab
+	keyPresserTab  *KeyPresserTab
 	recorderTab    *RecorderTab
 	settingsTab    *SettingsTab
 	statusLabel    *widget.Label
@@ -65,15 +66,27 @@ func New(simplyApp *simplyapp.App, version string) (*UI, error) {
 
 func (u *UI) setupUI() {
 	u.autoClickerTab = NewAutoClickerTab(u.simplyApp, u.window)
+	u.keyPresserTab = NewKeyPresserTab(u.simplyApp, u.window)
 	u.recorderTab = NewRecorderTab(u.simplyApp)
 	u.recorderTab.SetWindow(u.window)
 	u.settingsTab = NewSettingsTab(u.simplyApp, u.version)
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Auto Clicker", u.autoClickerTab.Content()),
+		container.NewTabItem("Key Presser", u.keyPresserTab.Content()),
 		container.NewTabItem("Macro Recorder", u.recorderTab.Content()),
 		container.NewTabItem("Settings", u.settingsTab.Content()),
 	)
+
+	// The primary toggle hotkey follows the active automation tab.
+	tabs.OnSelected = func(item *container.TabItem) {
+		switch item.Text {
+		case "Auto Clicker":
+			u.simplyApp.SetActiveMode(simplyapp.ModeClicker)
+		case "Key Presser":
+			u.simplyApp.SetActiveMode(simplyapp.ModeKeyPresser)
+		}
+	}
 
 	u.statusLabel = widget.NewLabel(u.getStatusText("Ready"))
 
@@ -90,7 +103,7 @@ func (u *UI) getHotkeyText(action simplyapp.HotkeyAction) string {
 }
 
 func (u *UI) getStatusText(status string) string {
-	return fmt.Sprintf("%s | %s: Clicker | %s: Record | %s: Play | %s: Stop",
+	return fmt.Sprintf("%s | %s: Click/Keys | %s: Record | %s: Play | %s: Stop",
 		status,
 		u.getHotkeyText(simplyapp.HotkeyAutoClicker),
 		u.getHotkeyText(simplyapp.HotkeyRecord),
@@ -107,6 +120,13 @@ func (u *UI) startEventLoop() {
 				u.autoClickerTab.UpdateState(event.Running, event.Count)
 				if event.Running {
 					u.updateStatus("Auto Clicker running...")
+				} else {
+					u.updateStatus("Ready")
+				}
+			case "keypresser":
+				u.keyPresserTab.UpdateState(event.Running, event.Count)
+				if event.Running {
+					u.updateStatus("Key Presser running...")
 				} else {
 					u.updateStatus("Ready")
 				}

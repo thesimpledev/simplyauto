@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	user32                = syscall.NewLazyDLL("user32.dll")
-	procSendInput         = user32.NewProc("SendInput")
-	procMapVirtualKey     = user32.NewProc("MapVirtualKeyW")
-	procGetSystemMetrics  = user32.NewProc("GetSystemMetrics")
+	user32               = syscall.NewLazyDLL("user32.dll")
+	procSendInput        = user32.NewProc("SendInput")
+	procMapVirtualKey    = user32.NewProc("MapVirtualKeyW")
+	procGetSystemMetrics = user32.NewProc("GetSystemMetrics")
+	procVkKeyScan        = user32.NewProc("VkKeyScanW")
 )
 
 // MapVirtualKey mapping types
@@ -36,16 +37,16 @@ const (
 
 // Mouse event flags
 const (
-	MOUSEEVENTF_MOVE       = 0x0001
-	MOUSEEVENTF_LEFTDOWN   = 0x0002
-	MOUSEEVENTF_LEFTUP     = 0x0004
-	MOUSEEVENTF_RIGHTDOWN  = 0x0008
-	MOUSEEVENTF_RIGHTUP    = 0x0010
-	MOUSEEVENTF_MIDDLEDOWN = 0x0020
-	MOUSEEVENTF_MIDDLEUP   = 0x0040
-	MOUSEEVENTF_WHEEL      = 0x0800
+	MOUSEEVENTF_MOVE        = 0x0001
+	MOUSEEVENTF_LEFTDOWN    = 0x0002
+	MOUSEEVENTF_LEFTUP      = 0x0004
+	MOUSEEVENTF_RIGHTDOWN   = 0x0008
+	MOUSEEVENTF_RIGHTUP     = 0x0010
+	MOUSEEVENTF_MIDDLEDOWN  = 0x0020
+	MOUSEEVENTF_MIDDLEUP    = 0x0040
+	MOUSEEVENTF_WHEEL       = 0x0800
 	MOUSEEVENTF_VIRTUALDESK = 0x4000
-	MOUSEEVENTF_ABSOLUTE   = 0x8000
+	MOUSEEVENTF_ABSOLUTE    = 0x8000
 )
 
 // Keyboard event flags
@@ -86,7 +87,7 @@ type inputUnion struct {
 
 type keyboardInputUnion struct {
 	dtype uint32
-	_     uint32  // padding for 64-bit alignment
+	_     uint32 // padding for 64-bit alignment
 	ki    keybdInput
 	__    [8]byte // padding to match mouseInput size (mouseInput has uintptr at end)
 }
@@ -387,4 +388,62 @@ func KeyUpVK(vk uint16) {
 	}
 
 	procSendInput.Call(1, uintptr(unsafe.Pointer(&input)), unsafe.Sizeof(input))
+}
+
+// vkScanChar maps a character to the virtual key code and modifier state
+// (low bit shift, then ctrl, then alt) needed to type it on the current
+// keyboard layout. ok is false when the character cannot be produced.
+func vkScanChar(ch rune) (vk uint16, shiftState uint16, ok bool) {
+	if ch > 0xFFFF {
+		return 0, 0, false
+	}
+	ret, _, _ := procVkKeyScan.Call(uintptr(uint16(ch)))
+	res := uint16(ret)
+	if res == 0xFFFF {
+		return 0, 0, false
+	}
+	return res & 0xFF, (res >> 8) & 0xFF, true
+}
+
+// CanType reports whether the character can be produced on the current
+// keyboard layout (and is therefore safe to pass to KeyPressChar).
+func CanType(ch rune) bool {
+	_, _, ok := vkScanChar(ch)
+	return ok
+}
+
+// KeyPressChar presses and releases the key that types the given character,
+// holding whatever modifiers (shift/ctrl/alt) the keyboard layout requires.
+func KeyPressChar(ch rune) {
+	vk, shiftState, ok := vkScanChar(ch)
+	if !ok {
+		return
+	}
+
+	shift := shiftState&0x01 != 0
+	ctrl := shiftState&0x02 != 0
+	alt := shiftState&0x04 != 0
+
+	if shift {
+		KeyDownVK(0x10) // VK_SHIFT
+	}
+	if ctrl {
+		KeyDownVK(0x11) // VK_CONTROL
+	}
+	if alt {
+		KeyDownVK(0x12) // VK_MENU (Alt)
+	}
+
+	KeyDownVK(vk)
+	KeyUpVK(vk)
+
+	if alt {
+		KeyUpVK(0x12)
+	}
+	if ctrl {
+		KeyUpVK(0x11)
+	}
+	if shift {
+		KeyUpVK(0x10)
+	}
 }

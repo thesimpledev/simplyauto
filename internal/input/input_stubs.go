@@ -11,3 +11,7 @@ func Toggle(button string, state string) {}
 func ScrollDir(amount int, dir string)   {}
 func KeyDown(key string)                 {}
 func KeyUp(key string)                   {}
+func KeyDownVK(vk uint16)                {}
+func KeyUpVK(vk uint16)                  {}
+func KeyPressChar(ch rune)               {}
+func CanType(ch rune) bool               { return false }

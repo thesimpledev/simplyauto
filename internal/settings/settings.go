@@ -24,9 +24,20 @@ type Settings struct {
 	ClickRepeatMode     string // "Until stopped", "Count"
 	ClickRepeatCount    int
 
+	// Key-presser settings
+	KeyPresserKeys           string
+	KeyPresserIntervalHours  int
+	KeyPresserIntervalMins   int
+	KeyPresserIntervalSecs   int
+	KeyPresserIntervalMs     int
+	KeyPresserRandomEnabled  bool
+	KeyPresserRandomOffsetMs int
+	KeyPresserRepeatMode     string // "Until stopped", "Count"
+	KeyPresserRepeatCount    int
+
 	// Playback settings
-	PlaybackSpeed    string // "0.5x", "1x", "2x", "4x"
-	PlaybackLoopMode string // "Once", "Count", "Continuous"
+	PlaybackSpeed     string // "0.5x", "1x", "2x", "4x"
+	PlaybackLoopMode  string // "Once", "Count", "Continuous"
 	PlaybackLoopCount int
 }
 
@@ -50,6 +61,17 @@ func Default() Settings {
 		ClickType:           "Single",
 		ClickRepeatMode:     "Until stopped",
 		ClickRepeatCount:    1,
+
+		// Key-presser defaults
+		KeyPresserKeys:           "",
+		KeyPresserIntervalHours:  0,
+		KeyPresserIntervalMins:   0,
+		KeyPresserIntervalSecs:   1,
+		KeyPresserIntervalMs:     0,
+		KeyPresserRandomEnabled:  false,
+		KeyPresserRandomOffsetMs: 0,
+		KeyPresserRepeatMode:     "Until stopped",
+		KeyPresserRepeatCount:    1,
 
 		// Playback defaults
 		PlaybackSpeed:     "1x",

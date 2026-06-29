@@ -11,6 +11,7 @@ import (
 
 	"simplyauto/internal/autoclicker"
 	"simplyauto/internal/hooks"
+	"simplyauto/internal/keypresser"
 	"simplyauto/internal/recorder"
 	"simplyauto/internal/settings"
 	"simplyauto/internal/storage"
@@ -25,6 +26,15 @@ const (
 	HotkeyRecord      HotkeyAction = "record"
 	HotkeyPlayback    HotkeyAction = "playback"
 	HotkeyStop        HotkeyAction = "stop"
+)
+
+// AutomationMode selects which interval automation the primary toggle hotkey
+// controls. It follows the active tab between the Auto Clicker and Key Presser.
+type AutomationMode int
+
+const (
+	ModeClicker AutomationMode = iota
+	ModeKeyPresser
 )
 
 type HotkeyBinding struct {
@@ -47,6 +57,7 @@ type StateEvent struct {
 type App struct {
 	Log         *log.Logger
 	AutoClicker *autoclicker.AutoClicker
+	KeyPresser  *keypresser.KeyPresser
 	Recorder    *recorder.Recorder
 	Player      *recorder.Player
 	Storage     *storage.JSONStorage
@@ -64,8 +75,14 @@ type App struct {
 
 	// OnAutoClickerStart is called before the autoclicker starts to apply UI config
 	OnAutoClickerStart func() error
+	// OnKeyPresserStart is called before the key presser starts to apply UI config
+	OnKeyPresserStart func() error
 	// OnPlaybackStart is called before playback starts to apply UI config
 	OnPlaybackStart func()
+
+	// activeMode follows the selected tab so the primary toggle hotkey drives
+	// either the Auto Clicker or the Key Presser (guarded by mu).
+	activeMode AutomationMode
 
 	mu sync.Mutex
 
@@ -84,6 +101,7 @@ func New() *App {
 	a := &App{
 		Log:         log.New(&lazyLogWriter{}, "", log.Ldate|log.Ltime|log.Lshortfile),
 		AutoClicker: autoclicker.New(),
+		KeyPresser:  keypresser.New(),
 		Recorder:    recorder.NewRecorder(recorder.DefaultRecorderOptions()),
 		Player:      recorder.NewPlayer(),
 		Storage:     storage.NewJSONStorage(),
@@ -118,7 +136,29 @@ func (a *App) sendEvent(e StateEvent) {
 }
 
 func (a *App) isIdle() bool {
-	return !a.AutoClicker.IsRunning() && !a.Recorder.IsRecording() && !a.Player.IsPlaying()
+	return !a.AutoClicker.IsRunning() && !a.KeyPresser.IsRunning() && !a.Recorder.IsRecording() && !a.Player.IsPlaying()
+}
+
+// SetActiveMode records which automation tab is selected so the primary toggle
+// hotkey controls the matching engine.
+func (a *App) SetActiveMode(mode AutomationMode) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.activeMode = mode
+}
+
+// ToggleActive is the primary toggle hotkey callback; it dispatches to whichever
+// automation the active tab selected.
+func (a *App) ToggleActive() {
+	a.mu.Lock()
+	mode := a.activeMode
+	a.mu.Unlock()
+
+	if mode == ModeKeyPresser {
+		a.ToggleKeyPresser()
+	} else {
+		a.ToggleAutoClicker()
+	}
 }
 
 func (a *App) isMacroActive() bool {
@@ -188,7 +228,7 @@ func (a *App) RegisterDefaultHotkeys() error {
 func (a *App) getCallbackForAction(action HotkeyAction) hooks.HotkeyCallback {
 	switch action {
 	case HotkeyAutoClicker:
-		return a.ToggleAutoClicker
+		return a.ToggleActive
 	case HotkeyRecord:
 		return a.ToggleRecording
 	case HotkeyPlayback:
@@ -292,7 +332,7 @@ func (a *App) ToggleAutoClicker() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.isMacroActive() {
+	if a.isMacroActive() || a.KeyPresser.IsRunning() {
 		return
 	}
 
@@ -312,11 +352,35 @@ func (a *App) ToggleAutoClicker() {
 	})
 }
 
+func (a *App) ToggleKeyPresser() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.isMacroActive() || a.AutoClicker.IsRunning() {
+		return
+	}
+
+	// If starting (not currently running), apply config from UI first
+	if !a.KeyPresser.IsRunning() && a.OnKeyPresserStart != nil {
+		if err := a.OnKeyPresserStart(); err != nil {
+			a.Log.Printf("failed to apply keypresser config: %v", err)
+			return
+		}
+	}
+
+	a.KeyPresser.Toggle()
+	a.sendEvent(StateEvent{
+		Type:    "keypresser",
+		Running: a.KeyPresser.IsRunning(),
+		Count:   a.KeyPresser.GetPressCount(),
+	})
+}
+
 func (a *App) ToggleRecording() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.AutoClicker.IsRunning() || a.Player.IsPlaying() {
+	if a.AutoClicker.IsRunning() || a.KeyPresser.IsRunning() || a.Player.IsPlaying() {
 		return
 	}
 
@@ -348,7 +412,7 @@ func (a *App) TogglePlayback() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.AutoClicker.IsRunning() || a.Recorder.IsRecording() {
+	if a.AutoClicker.IsRunning() || a.KeyPresser.IsRunning() || a.Recorder.IsRecording() {
 		return
 	}
 
@@ -388,6 +452,12 @@ func (a *App) Stop() {
 	if a.AutoClicker.IsRunning() {
 		a.AutoClicker.Stop()
 		a.sendEvent(StateEvent{Type: "autoclicker", Running: false, Count: a.AutoClicker.GetClickCount()})
+		return
+	}
+
+	if a.KeyPresser.IsRunning() {
+		a.KeyPresser.Stop()
+		a.sendEvent(StateEvent{Type: "keypresser", Running: false, Count: a.KeyPresser.GetPressCount()})
 		return
 	}
 

@@ -75,6 +75,35 @@ func Load() Settings {
 		s.ClickRepeatCount = int(v)
 	}
 
+	// Key-presser
+	if v, _, err := key.GetStringValue("KeyPresserKeys"); err == nil {
+		s.KeyPresserKeys = v
+	}
+	if v, _, err := key.GetIntegerValue("KeyPresserIntervalHours"); err == nil {
+		s.KeyPresserIntervalHours = int(v)
+	}
+	if v, _, err := key.GetIntegerValue("KeyPresserIntervalMins"); err == nil {
+		s.KeyPresserIntervalMins = int(v)
+	}
+	if v, _, err := key.GetIntegerValue("KeyPresserIntervalSecs"); err == nil {
+		s.KeyPresserIntervalSecs = int(v)
+	}
+	if v, _, err := key.GetIntegerValue("KeyPresserIntervalMs"); err == nil {
+		s.KeyPresserIntervalMs = int(v)
+	}
+	if v, _, err := key.GetIntegerValue("KeyPresserRandomEnabled"); err == nil {
+		s.KeyPresserRandomEnabled = v != 0
+	}
+	if v, _, err := key.GetIntegerValue("KeyPresserRandomOffsetMs"); err == nil {
+		s.KeyPresserRandomOffsetMs = int(v)
+	}
+	if v, _, err := key.GetStringValue("KeyPresserRepeatMode"); err == nil {
+		s.KeyPresserRepeatMode = v
+	}
+	if v, _, err := key.GetIntegerValue("KeyPresserRepeatCount"); err == nil {
+		s.KeyPresserRepeatCount = int(v)
+	}
+
 	// Playback
 	if v, _, err := key.GetStringValue("PlaybackSpeed"); err == nil {
 		s.PlaybackSpeed = v
@@ -183,6 +212,32 @@ func SaveAutoClicker(hours, mins, secs, ms int, randomEnabled bool, randomOffset
 	key.SetStringValue("ClickType", clickType)
 	key.SetStringValue("ClickRepeatMode", repeatMode)
 	key.SetDWordValue("ClickRepeatCount", uint32(repeatCount))
+
+	return nil
+}
+
+// SaveKeyPresser saves key-presser settings to the registry.
+func SaveKeyPresser(keys string, hours, mins, secs, ms int, randomEnabled bool, randomOffset int,
+	repeatMode string, repeatCount int) error {
+	key, _, err := registry.CreateKey(registry.CURRENT_USER, registryPath, registry.SET_VALUE)
+	if err != nil {
+		return err
+	}
+	defer key.Close()
+
+	key.SetStringValue("KeyPresserKeys", keys)
+	key.SetDWordValue("KeyPresserIntervalHours", uint32(hours))
+	key.SetDWordValue("KeyPresserIntervalMins", uint32(mins))
+	key.SetDWordValue("KeyPresserIntervalSecs", uint32(secs))
+	key.SetDWordValue("KeyPresserIntervalMs", uint32(ms))
+	if randomEnabled {
+		key.SetDWordValue("KeyPresserRandomEnabled", 1)
+	} else {
+		key.SetDWordValue("KeyPresserRandomEnabled", 0)
+	}
+	key.SetDWordValue("KeyPresserRandomOffsetMs", uint32(randomOffset))
+	key.SetStringValue("KeyPresserRepeatMode", repeatMode)
+	key.SetDWordValue("KeyPresserRepeatCount", uint32(repeatCount))
 
 	return nil
 }

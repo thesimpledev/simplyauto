@@ -28,6 +28,12 @@ func SaveAutoClicker(hours, mins, secs, ms int, randomEnabled bool, randomOffset
 	return nil
 }
 
+// SaveKeyPresser is a no-op on non-Windows platforms.
+func SaveKeyPresser(keys string, hours, mins, secs, ms int, randomEnabled bool, randomOffset int,
+	repeatMode string, repeatCount int) error {
+	return nil
+}
+
 // SavePlayback is a no-op on non-Windows platforms.
 func SavePlayback(speed, loopMode string, loopCount int) error {
 	return nil
