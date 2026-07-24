@@ -29,6 +29,7 @@ type UI struct {
 	keyPresserTab  *KeyPresserTab
 	recorderTab    *RecorderTab
 	settingsTab    *SettingsTab
+	helpTab        *HelpTab
 	statusLabel    *widget.Label
 	version        string
 }
@@ -70,12 +71,14 @@ func (u *UI) setupUI() {
 	u.recorderTab = NewRecorderTab(u.simplyApp)
 	u.recorderTab.SetWindow(u.window)
 	u.settingsTab = NewSettingsTab(u.simplyApp, u.version)
+	u.helpTab = NewHelpTab(u.version)
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Auto Clicker", u.autoClickerTab.Content()),
 		container.NewTabItem("Key Presser", u.keyPresserTab.Content()),
 		container.NewTabItem("Macro Recorder", u.recorderTab.Content()),
 		container.NewTabItem("Settings", u.settingsTab.Content()),
+		container.NewTabItem("Help", u.helpTab.Content()),
 	)
 
 	// The primary toggle hotkey follows the active automation tab.

@@ -4,7 +4,7 @@ APP_NAME := SimplyAuto
 APP_ID := com.simplyauto.app
 BINARY_NAME := simplyauto.exe
 BIN_DIR := bin
-ICON := assets/logo.png
+ICON := internal/assets/logo.png
 
 VERSION ?=
 GITHUB_REPO := $(shell git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Minimal MSI for SimplyAuto, used as input to the MSIX Packaging Tool
+  (see docs/store-submission.md). Program Files + Start Menu shortcut
+  only; installs silently with: msiexec /i SimplyAuto.msi /qn
+
+  The UpgradeCode is permanent — never change it.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="SimplyAuto"
+           Language="1033"
+           Version="$(var.Version)"
+           Manufacturer="thesimpledev"
+           UpgradeCode="E5C9FE4A-B3F6-4DC2-BBF9-6E9E06F1A605">
+
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="x64"
+             Description="SimplyAuto - Windows Auto Clicker &amp; Macro Recorder" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of SimplyAuto is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="SimplyAuto">
+          <Component Id="MainExecutable" Guid="7D1A2C90-5B7E-4F41-9C33-B2A4D8E0F612" Win64="yes">
+            <File Id="SimplyAutoExe"
+                  Source="$(var.ExePath)"
+                  Name="simplyauto.exe"
+                  KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="AppMenuFolder" Name="SimplyAuto">
+          <Component Id="StartMenuShortcut" Guid="A3F8B1D4-6C29-4E87-8D55-C1E9F0A27B34" Win64="yes">
+            <Shortcut Id="AppShortcut"
+                      Name="SimplyAuto"
+                      Description="Windows Auto Clicker &amp; Macro Recorder"
+                      Target="[INSTALLFOLDER]simplyauto.exe"
+                      WorkingDirectory="INSTALLFOLDER" />
+            <RemoveFolder Id="RemoveAppMenuFolder" On="uninstall" />
+            <RegistryValue Root="HKCU"
+                           Key="Software\SimplyAuto"
+                           Name="installed"
+                           Type="integer"
+                           Value="1"
+                           KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <Feature Id="Main" Level="1">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+  </Product>
+</Wix>
