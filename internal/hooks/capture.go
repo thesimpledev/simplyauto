@@ -11,7 +11,7 @@ import (
 	"github.com/moutend/go-hook/pkg/mouse"
 	"github.com/moutend/go-hook/pkg/types"
 
-	"simplyauto/pkg/events"
+	"simplyauto/internal/events"
 )
 
 // Mouse message constants (not defined in go-hook)

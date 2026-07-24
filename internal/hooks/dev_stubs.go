@@ -10,7 +10,7 @@ package hooks
 import (
 	"errors"
 
-	"simplyauto/pkg/events"
+	"simplyauto/internal/events"
 )
 
 var errNotWindows = errors.New("hooks only supported on Windows")

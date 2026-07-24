@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"simplyauto/internal/input"
-	"simplyauto/pkg/events"
+	"simplyauto/internal/events"
 )
 
 type State int

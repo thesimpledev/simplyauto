@@ -4,7 +4,7 @@ package storage
 import (
 	"time"
 
-	"simplyauto/pkg/events"
+	"simplyauto/internal/events"
 )
 
 type Recording struct {

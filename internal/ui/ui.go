@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
-	"simplyauto/assets"
+	"simplyauto/internal/assets"
 	simplyapp "simplyauto/internal/app"
 	"simplyauto/internal/hooks"
 )

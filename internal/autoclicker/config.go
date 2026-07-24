@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"simplyauto/pkg/events"
+	"simplyauto/internal/events"
 )
 
 type RepeatMode int

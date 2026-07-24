@@ -15,7 +15,7 @@ import (
 	"simplyauto/internal/autoclicker"
 	"simplyauto/internal/hooks"
 	"simplyauto/internal/settings"
-	"simplyauto/pkg/events"
+	"simplyauto/internal/events"
 )
 
 type AutoClickerTab struct {
