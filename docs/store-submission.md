@@ -89,6 +89,13 @@ does:
 3. Point it at the MSI, enter the identity values, let it convert. It
    declares the `runFullTrust` capability automatically — that's
    required and expected for a converted desktop app.
+   The conversion is scripted: run elevated
+   `MsixPackagingTool.exe create-package /template installer\msix-template.xml`
+   (update the version in the template per release). Known quirk: the
+   converted manifest picks up a spurious `Microsoft.WindowsAppRuntime`
+   PackageDependency from the host machine; it's harmless — the Store
+   auto-installs it — and stripping it would require makeappx from the
+   Windows SDK.
 4. Test the resulting `.msix` locally (Settings → For developers →
    Developer Mode lets you install unsigned test packages). Verify:
    - hotkeys F6/F9/F10/F11 work

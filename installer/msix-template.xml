@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSIX Packaging Tool conversion template (docs/store-submission.md step 5).
+  Run elevated:
+    MsixPackagingTool.exe create-package /template installer\msix-template.xml
+  Identity values come from Partner Center > SimplyAuto > Product identity.
+  Update Installer Path and Version for each release (MSIX version is 4-part).
+-->
+<MsixPackagingToolTemplate
+    xmlns="http://schemas.microsoft.com/appx/msixpackagingtool/template/2018">
+
+  <Settings AllowTelemetry="false"
+            ApplyAllPrepareComputerFixes="false"
+            GenerateCommandLineFile="true"
+            AllowPromptForPassword="false"
+            EnforceMicrosoftStoreVersioningRequirements="true" />
+
+  <Installer Path="D:\projects\simplyauto\bin\SimplyAuto-1.5.0.msi"
+             Arguments="/qn" />
+
+  <SaveLocation PackagePath="D:\projects\simplyauto\bin\SimplyAuto-1.5.0.msix" />
+
+  <PackageInformation PackageName="TheSimpleDev.SimplyAuto"
+                      PackageDisplayName="SimplyAuto"
+                      PublisherName="CN=7BF8A48F-7EC9-41A4-861E-5AC76F45DE76"
+                      PublisherDisplayName="The Simple Dev"
+                      Version="1.5.0.0" />
+</MsixPackagingToolTemplate>

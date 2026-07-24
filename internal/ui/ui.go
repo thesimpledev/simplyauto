@@ -41,6 +41,13 @@ func New(simplyApp *simplyapp.App, version string) (*UI, error) {
 	}
 	fyneApp.SetIcon(assets.AppIcon())
 
+	// fyne package injects the release version into app metadata; plain
+	// go build (make debug) leaves it empty and the passed-in fallback
+	// ("dev") is shown instead.
+	if m := fyneApp.Metadata().Version; m != "" {
+		version = m
+	}
+
 	window := fyneApp.NewWindow(AppTitle)
 	if window == nil {
 		return nil, fmt.Errorf("failed to create application window")
