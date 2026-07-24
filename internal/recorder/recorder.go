@@ -7,7 +7,7 @@ import (
 
 	"simplyauto/internal/hooks"
 	"simplyauto/internal/storage"
-	"simplyauto/pkg/events"
+	"simplyauto/internal/events"
 )
 
 type RecorderState int

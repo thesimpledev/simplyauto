@@ -6,7 +6,7 @@ import (
 
 	"simplyauto/internal/input"
 	"simplyauto/internal/storage"
-	"simplyauto/pkg/events"
+	"simplyauto/internal/events"
 )
 
 type PlayerState int
